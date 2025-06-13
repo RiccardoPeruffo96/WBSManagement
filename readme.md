@@ -1,4 +1,6 @@
-# Research Project Management System
+# WBS Management System
+
+Project about Fondamenti di Ingegneria del Software - Università degli Studi di Verona - A.A. 2024/2025
 
 ## Table of Contents
 - [System Objectives](#system-objectives)  
