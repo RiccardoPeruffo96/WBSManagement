@@ -11,8 +11,8 @@
     <div class="nav-section">
         <a th:href="@{/homepage}">Home</a>
         <a th:href="@{/project}">Project</a>
-        <a th:href="@{/home-tracking}">Home Tracking</a>
-        <a th:href="@{/save-report}">Save Report</a>
+        <a th:href="@{/home-tracking/{today}(today=${today ?: #dates.format(#dates.createNow(), 'yyyy-MM-dd')})}">Home Tracking</a>
+        <a th:href="@{/save-report/{today}(today=${today ?: #dates.format(#dates.createNow(), 'yyyy-MM-dd')})}">Save Report</a>
     </div>
 
     <div class="submenu">

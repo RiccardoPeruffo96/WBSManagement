@@ -3,6 +3,8 @@ package it.univr.wbsmanagement;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+import it.univr.wbsmanagement.database.DatabaseManager;
+
 /**
  * The ServingWebContentApplication class serves as the entry point for the Time Tracking application.
  *
@@ -18,6 +20,9 @@ public class ServingWebContentApplication {
      * @param args command-line arguments (not used).
      */
     public static void main(String[] args) {
+
+        // Initialize the database by creating tables if they do not already exist.
+        DatabaseManager.setupDatabase();
 
         SpringApplication.run(ServingWebContentApplication.class, args);
 

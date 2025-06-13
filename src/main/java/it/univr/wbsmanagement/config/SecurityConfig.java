@@ -16,9 +16,20 @@ import it.univr.wbsmanagement.database.DatabaseManager;
 import org.thymeleaf.extras.springsecurity6.dialect.SpringSecurityDialect;
 //import it.univr.wbsmanagement.models.User;
 
+/**
+ *  SecurityConfig configures the security settings for the application.
+ *  It defines which URLs are accessible without authentication,
+ *  which require authentication, and how login/logout should be handled.
+ */
 @Configuration
 public class SecurityConfig {
 
+    /**
+     * This bean registers the Spring Security dialect for Thymeleaf templates.
+     * It allows us to use security-related attributes in our HTML templates.
+     *
+     * @return a new instance of SpringSecurityDialect
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -42,18 +53,12 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /*
-    @Bean
-    public UserDetailsService userDetailsService() {
-        UserDetails user = User.withDefaultPasswordEncoder()
-                .username("admin")
-                .password("admin")
-                .roles("ADMIN")
-                .build();
-
-        return new InMemoryUserDetailsManager(user);
-    }
-    */
+    /**
+     * This bean registers the Spring Security dialect for Thymeleaf templates.
+     * It allows us to use security-related attributes in our HTML templates.
+     *
+     * @return a new instance of SpringSecurityDialect
+     */
     @Bean
     public UserDetailsService userDetailsService() {
         return new UserDetailsService() {

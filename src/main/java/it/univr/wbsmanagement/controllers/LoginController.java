@@ -13,6 +13,11 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @Controller
 public class LoginController {
 
+    /**
+     * Redirects to the homepage if the user is authenticated, otherwise redirects to the login page.
+     *
+     * @return the view name for the homepage or redirect to login.
+     */
     @GetMapping("/")
     public String homepageRedirect() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();

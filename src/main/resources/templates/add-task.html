@@ -1,4 +1,3 @@
-<!-- add-task.html -->
 <section xmlns:th="http://www.thymeleaf.org"
          th:fragment="content"
          class="project-section">
@@ -12,6 +11,9 @@
 
     <div class="form-container">
         <h2>Add Task</h2>
+        <p th:if="${message}"
+           th:text="${message}"
+           style="margin-top:0.5em;"></p>
 
         <form th:action="@{/project/{key}/add-task(key=${projectKey})}" method="post">
             <label for="workPackageId">Work Package Reference</label>
@@ -25,6 +27,13 @@
                         th:text="${wp.title}">
                 </option>
             </select>
+
+            <label for="title">Title</label>
+            <textarea id="title"
+                      name="title"
+                      class="input-field"
+                      rows="1"
+                      required></textarea>
 
             <label for="description">Description</label>
             <textarea id="description"
@@ -47,6 +56,30 @@
                    name="deadline"
                    class="input-field"
                    required />
+
+            <label for="taskPriority">Task priority</label>
+            <select id="taskPriority"
+                    name="taskPriority"
+                    class="input-field"
+                    required>
+                <option value="" disabled selected>Select one…</option>
+                <option th:each="tp : ${taskPriority}"
+                        th:value="${tp.split(' - ')[0]}"
+                        th:text="${tp.split(' - ')[1]}">
+                </option>
+            </select>
+
+            <label for="taskStatus">Task status</label>
+            <select id="taskStatus"
+                    name="taskStatus"
+                    class="input-field"
+                    required>
+                <option value="" disabled selected>Select one…</option>
+                <option th:each="ts : ${taskStatus}"
+                        th:value="${ts.split(' - ')[0]}"
+                        th:text="${ts.split(' - ')[1]}">
+                </option>
+            </select>
 
             <div class="view-header">
                 <input type="submit"

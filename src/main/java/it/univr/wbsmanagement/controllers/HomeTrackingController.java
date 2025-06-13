@@ -3,13 +3,17 @@ package it.univr.wbsmanagement.controllers;
 import it.univr.wbsmanagement.database.DatabaseManager;
 import it.univr.wbsmanagement.models.User;
 
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.format.annotation.DateTimeFormat.ISO;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -23,98 +27,145 @@ import java.util.*;
  * più il form per inserire nuove ore.
  */
 @Controller
-@RequestMapping("/house-tracking")
-public class HouseTrackingController {
+public class HomeTrackingController {
 
     /**
-     * Display the tracking page for a given week.
+     * Display the hours charged by the user for a specific day.
      *
-     * @param weekStart optional start of week (ISO date, Monday); defaults to this week’s Monday.
-     * @param model     Thymeleaf model.
-     * @return the main layout view with content set to "house-tracking".
+     * @param model Thymeleaf model.
+     * @return the main layout view with content set to "home-tracking".
      */
-    @GetMapping
-    public String showTrackingPage(
-            @RequestParam(name = "weekStart", required = false)
-            @DateTimeFormat(iso = ISO.DATE) LocalDate weekStart,
+    @GetMapping("/home-tracking/{targetDay}/add-home-tracking")
+    public String showTrackingAddPage(
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate targetDay,
             Model model
     ) {
-        // 1) Determine week range: Monday → Sunday
-        LocalDate monday = (weekStart != null)
-                ? weekStart
-                : LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-        LocalDate sunday = monday.plusDays(6);
-
-        // 2) Current user & ID
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String email = auth.getName();
+        // 1) Current user & ID
         User currentUser = DatabaseManager.getUser();
-        // se non è già stato fatto, si potrebbe inizializzare in login:
-        // int uid = DatabaseManager.getUserIdByEmail(email);
-        // currentUser = new User(uid, email, DatabaseManager.getUserRole(email));
         int userId = currentUser.getUserId();
 
-        // 3) Fetch hours per day (map LocalDate→Double)
-        Map<LocalDate, Double> dailyMap =
-                DatabaseManager.getWeeklyHours(userId, monday, sunday);
+        // 2) Fetch hours per day (map LocalDate->Double)
+        HashMap<LocalDate, HashMap<Integer, HashMap<Integer, Double>>> userDay = DatabaseManager.getUsersAndAssignmentsHoursByRangeDay(userId, targetDay, targetDay);
 
-        // 4) Build ordered lists for Thymeleaf
-        List<LocalDate> weekDates = new ArrayList<>();
-        List<Double>   weekHours = new ArrayList<>();
-        for (LocalDate d = monday; !d.isAfter(sunday); d = d.plusDays(1)) {
-            weekDates.add(d);
-            weekHours.add(dailyMap.getOrDefault(d, 0.0));
+        // 3) Totale ore caricate giornaliere
+        if(userDay.containsKey(targetDay)) {
+
+            HashMap<Integer, HashMap<Integer, Double>> dayHours = userDay.get(targetDay);
+
+            HashMap<String, Double> hoursMap = new HashMap<>();
+            HashMap<Integer, String> projectTrack = new HashMap<>();
+
+            for (Map.Entry<Integer, HashMap<Integer, Double>> hoursByProjectId : dayHours.entrySet()) {
+
+                // Retrieve project ID
+                int projectId = hoursByProjectId.getKey();
+
+                for (Map.Entry<Integer, Double> hourEntry : hoursByProjectId.getValue().entrySet()) {
+                    // Retrieve task ID and hours
+                    int taskId = hourEntry.getKey();
+                    double hours = hourEntry.getValue();
+
+                    // Process or display the hours as needed
+                    projectTrack.computeIfAbsent(projectId, k -> DatabaseManager.getProjectTitleById(projectId, true));
+                    String taskName = DatabaseManager.getTaskTitleNameById(taskId, true);
+
+                    hoursMap.put("Project: " + projectTrack.get(projectId) + "; Task: " + taskName, hours);
+                }
+            }
+            model.addAttribute("hourCommission", hoursMap);
         }
 
-        // 5) Totale ore e ore contrattuali
-        double weeklyTotal = weekHours.stream()
-                .mapToDouble(Double::doubleValue)
-                .sum();
-        int contractedHours = DatabaseManager.getWorkingHoursWeekly(userId);
+        // 4) Add list of tasks available for the user
+        HashMap<String, String> tasks_available = DatabaseManager.getRetrieveTimeEntriesAvaibilityByUserAndDay(userId, targetDay, true);
+        HashMap<String, String> tasks_not_working = DatabaseManager.getNonWorkingTasks(true);
+        for (Map.Entry<String, String> entry : tasks_not_working.entrySet()) {
+            // Add the task to the available tasks with a note that it is not working
+            tasks_available.put(entry.getKey(), entry.getValue());
+        }
 
-        // 6) Task assegnati per il form
-        List<String> tasks = DatabaseManager.getTasksByUser(userId);
+        model.addAttribute("targetDay", targetDay);
+        model.addAttribute("tasks_available", tasks_available);
 
-        // 7) Popola il modello
-        model.addAttribute("today", LocalDate.now());
-        model.addAttribute("weekDates", weekDates);
-        model.addAttribute("weekHours", weekHours);
-        model.addAttribute("weeklyTotal", weeklyTotal);
-        model.addAttribute("contractedHours", contractedHours);
-        model.addAttribute("tasks", tasks);
-        model.addAttribute("selectedWeekStart", monday);
-        model.addAttribute("content", "house-tracking");
+        model.addAttribute("content", "add-home-tracking");
 
         return "layout";
     }
 
     /**
-     * Handle the submission of new hours for a given task & day.
+     * Handles adding a time entry for a specific task on a specific day.
+     * <p>
+     * It checks if the hours are valid, inserts the time entry, and updates the task assignments.
+     * If the insertion fails, it rolls back the operation.
      *
-     * @param taskId    the chosen task ID.
-     * @param date      the date of work (ISO format).
-     * @param hours     the number of hours to log.
-     * @param weekStart optional weekStart to preserve selection.
-     * @return redirect back to the same week view.
+     * @param targetDay The day for which the time entry is being added.
+     * @param taskId    The ID of the task for which hours are being added.
+     * @param hours     The number of hours to be added.
+     * @param model     The model to add attributes to the view.
+     * @return The view name to reload the tracking add page with updated information.
      */
-    @PostMapping("/record")
-    public String recordHours(
-            @RequestParam("taskId")   int taskId,
-            @RequestParam("date")
-            @DateTimeFormat(iso = ISO.DATE) LocalDate date,
-            @RequestParam("hours")    double hours,
-            @RequestParam(name = "weekStart", required = false)
-            @DateTimeFormat(iso = ISO.DATE) LocalDate weekStart
+    @PostMapping("/home-tracking/{targetDay}/add-home-tracking")
+    public String handleAddAssignment(
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate targetDay,
+            @RequestParam int taskId,
+            @RequestParam double hours,
+            Model model
     ) {
-        // Log hours via DatabaseManager
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        // 1) Current user & ID
         User currentUser = DatabaseManager.getUser();
         int userId = currentUser.getUserId();
 
-        DatabaseManager.insertTimeEntry(userId, taskId, date, hours);
+        if ((int) hours <= 0) {
+            model.addAttribute("addTimeEntryMessage", "Please enter a valid number of hours");
+            // reload everything
+            return showTrackingAddPage(targetDay, model);
+        }
 
-        // Redirect mantenendo la selezione della settimana
-        String param = (weekStart != null) ? "?weekStart=" + weekStart : "";
-        return "redirect:/house-tracking" + param;
+        boolean time_insert_insert_status = DatabaseManager.insertTimeEntry(userId, taskId, targetDay, hours);
+        boolean task_assignments_insert_status = DatabaseManager.updateEffortConsumedInTaskAssignments(userId, taskId, (int) hours, 1);
+
+        if (time_insert_insert_status && task_assignments_insert_status) {
+            model.addAttribute("addTimeEntryMessage", "Hours entry added successfully");
+        }
+        else {
+            model.addAttribute("addTimeEntryMessage", "Failed to add hour entry");
+
+            // Rollback operation if insertion failed
+            if(!(time_insert_insert_status && task_assignments_insert_status)) {
+
+                DatabaseManager.removeTimeEntryAndTaskAssignmentByUserIdAndTaskId(userId, taskId, targetDay);
+
+            }
+        }
+
+        // reload everything
+        return showTrackingAddPage(targetDay, model);
+    }
+
+    /**
+     * Handles the removal of a time entry and its associated task assignment.
+     * <p>
+     * It removes the time entry and task assignment for the specified user and task ID on the target day.
+     *
+     * @param targetDay The day for which the time entry is being removed.
+     * @param taskId    The ID of the task to be removed.
+     * @param model     The model to add attributes to the view.
+     * @return The view name to reload the tracking add page with updated information.
+     */
+    @PostMapping("/home-tracking/{targetDay}/add-home-tracking/remove/{taskId}")
+    public String handleRemoveAssignment(
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate targetDay,
+            @PathVariable int taskId,
+            Model model
+    ) {
+        // 1) Current user & ID
+        User currentUser = DatabaseManager.getUser();
+        int userId = currentUser.getUserId();
+
+        // 2) Remove time entry and task assignment
+        boolean remove_TimeEntry_and_TaskAssignment_status = DatabaseManager.removeTimeEntryAndTaskAssignmentByUserIdAndTaskId(userId, taskId, targetDay);
+        model.addAttribute("removeTimeEntryMessage", remove_TimeEntry_and_TaskAssignment_status ? "Entity removed successfully" : "Failed to remove entity");
+
+        // reload everything
+        return showTrackingAddPage(targetDay, model);
     }
 }

@@ -58,9 +58,7 @@ public class ProfileController {
                 message = "Current password is incorrect.";
             } else {
                 boolean success = DatabaseManager.updateUserPassword(email, newPassword);
-                message = success
-                        ? "Password changed successfully."
-                        : "An error occurred while updating the password.";
+                message = success ? "Password changed successfully." : "An error occurred while updating the password.";
             }
         }
 

@@ -1,21 +1,101 @@
-body {
-    font-family: Arial, sans-serif;
-    background-color: #1e1f22; /* #f2f2f2; */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
+/* styles.css */
+
+/* 1. Reset default margins, paddings and box-sizing */
+* {
     margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
+/* 2. Base body styles */
+body {
+    position: relative;            /* for absolute children */
+    height: 100vh;                 /* full viewport height */
+    background-color: #1e1f22;     /* dark background */
+    color: white;                  /* default text color */
+    font-family: Arial, sans-serif;
+    overflow: hidden;              /* prevent unwanted scroll */
+}
+
+/* 3. Sidebar fixed to the left */
+.sidebar {
+    position: fixed;               /* keep sidebar in place */
+    top: 0;                        /* flush with top */
+    left: 0;                       /* flush with left */
+    width: 220px;                  /* fixed width */
+    height: 100vh;                 /* full viewport height */
+    background-color: #2b2d30;     /* sidebar bg */
+    padding: 20px;                 /* inner spacing */
+    display: flex;                 /* vertical layout */
+    flex-direction: column;
+    justify-content: space-between;/* spread out sections */
+}
+
+/* 4. Sidebar navigation links */
+.sidebar .nav-section a,
+.sidebar .submenu ul li a {
+    display: block;                /* full-width link */
+    width: 100%;
+    padding: 10px;                 /* link padding */
+    margin-bottom: 10px;           /* gap between links */
+    text-align: center;            /* center text */
+    color: white;                  /* link color */
+    text-decoration: none;         /* remove underline */
+    border-radius: 4px;            /* rounded corners */
+    background-color: #3a3c40;     /* link bg */
+}
+
+.sidebar .nav-section a:hover,
+.sidebar .submenu ul li a:hover {
+    background-color: #4CAF50;     /* hover state */
+}
+
+/* 5. Submenu wrapper */
+.sidebar .submenu details {
+    margin: 10px 0;                /* vertical spacing */
+}
+.sidebar .submenu ul {
+    list-style: none;              /* remove bullets */
+    padding: 0;
+}
+
+/* 6. Homepage content centering */
+.homepage-section {
+    display: flex;                 /* flex for easy centering */
+    flex-direction: column;        /* stack children vertically */
+    justify-content: center;       /* center horizontally */
+    align-items: center;           /* center vertically */
+    position: absolute;            /* remove from normal flow */
+    top: 0;                        /* cover full height */
+    left: 220px;                   /* start after sidebar */
+    right: 0;
+    bottom: 0;
+    padding: 20px;                 /* inner spacing */
+    overflow: auto;                /* scroll if needed */
+    text-align: center;            /* center text inside */
+}
+
+/* optional: add some space between heading and paragraph */
+.homepage-section h2 {
+    margin-bottom: 0.5em;
+}
+
+/* 7. Login form centering */
 .login-container {
-    background-color: #2b2d30; /* #fff; */
-    padding: 20px 30px;
-    border-radius: 5px;
-    border: 1px solid #43454A; /* rgba(0, 0, 0, 0.2); */
-    color: white;
+    position: absolute;            /* absolute centering */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #2b2d30;     /* form bg */
+    padding: 20px 30px;            /* inner spacing */
+    border: 1px solid #43454A;     /* border */
+    border-radius: 5px;            /* rounded corners */
+    width: 100%;                   /* responsive width */
+    max-width: 400px;              /* cap max width */
+    color: white;                  /* text color */
 }
 
+/* 8. Login form elements */
 .login-container h2 {
     margin-bottom: 20px;
 }
@@ -25,31 +105,33 @@ body {
     margin-bottom: 5px;
 }
 
-.login-container input[type="text"],
-.login-container input[type="password"] {
+.login-container .input-field {
     width: 100%;
     padding: 10px;
     margin-bottom: 15px;
     border: 1px solid #43454A;
     border-radius: 3px;
-    background-color: #1e1f22; /* #f2f2f2; */
+    background-color: #1e1f22;
     color: white;
 }
 
-.login-container input[type="submit"] {
+/* 9. Login button */
+.login-container .login-button {
     width: 100%;
     padding: 10px;
-    border: 1px solid #43454A; /* #454740; */
+    border: 1px solid #43454A;
     background-color: #4CAF50;
     color: white;
     border-radius: 3px;
     cursor: pointer;
+    text-align: center;
 }
 
-.login-container input[type="submit"]:hover {
-    background-color: #4CAF50; /* #45a049; */
+.login-container .login-button:hover {
+    background-color: #45a049;
 }
 
+/* 10. Forgot password link */
 .password-container {
     display: flex;
     justify-content: space-between;
@@ -66,18 +148,56 @@ body {
     text-decoration: underline;
 }
 
-/* Imposta la stessa larghezza degli input e del pulsante login */
-.input-field {
+/* 11. Generic action button (reuse anywhere) */
+.action-button {
+    display: block;
+    width: 100%;
+    margin: 10px 0;
+    padding: 10px;
+    border: 1px solid #43454A;
+    background-color: #4CAF50;
+    color: white;
+    border-radius: 3px;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+}
+
+.action-button:hover {
+    background-color: #45a049;
+}
+
+/* 12. Reusable form-container to mimic login form styling */
+.form-container {
+    background-color: #2b2d30;     /* same as .login-container */
+    padding: 20px 30px;            /* inner spacing */
+    border: 1px solid #43454A;     /* border */
+    border-radius: 5px;            /* rounded corners */
+    width: 100%;                   /* responsive width */
+    max-width: 400px;              /* cap max width */
+    color: white;                  /* text color */
+}
+
+.form-container h2 {
+    margin-bottom: 20px;
+}
+
+.form-container label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.form-container .input-field {
     width: 100%;
     padding: 10px;
+    margin-bottom: 15px;
     border: 1px solid #43454A;
     border-radius: 3px;
     background-color: #1e1f22;
     color: white;
-    box-sizing: border-box;
 }
 
-.login-button {
+.form-container .form-button {
     width: 100%;
     padding: 10px;
     border: 1px solid #43454A;
@@ -85,4 +205,208 @@ body {
     color: white;
     border-radius: 3px;
     cursor: pointer;
+    text-align: center;
+}
+
+/* Match form action-buttons (Change Password, Back to Homepage) to sidebar link styling */
+.form-container .action-button {
+    display: block;               /* full-width like sidebar links */
+    width: 100%;
+    padding: 10px;                /* same padding as sidebar links */
+    margin: 10px 0;               /* same vertical spacing */
+    text-align: center;           /* center text */
+    font-family: inherit;         /* inherit page font (Arial, sans-serif) */
+    font-size: inherit;           /* inherit page font size */
+    font-weight: inherit;         /* inherit any font-weight */
+    color: white;                 /* link text color */
+    background-color: #3a3c40;    /* same bg as sidebar links */
+    border: none;                 /* remove default input border */
+    border-radius: 4px;           /* match sidebar’s 4px rounding */
+    cursor: pointer;
+    text-decoration: none;
+}
+
+/* Hover state matches sidebar links */
+.form-container .action-button:hover {
+    background-color: #4CAF50;
+}
+
+/* make the Logout button in the sidebar submenu look just like the Profile link */
+.sidebar .submenu form .action-button {
+    display: block;
+    width: 100%;
+    padding: 10px;             /* same as sidebar links */
+    margin-bottom: 10px;       /* same as sidebar links */
+    text-align: center;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;        /* match the <a>’s 4px rounding */
+    background-color: #3a3c40; /* same background as sidebar links */
+    font-family: inherit;      /* pick up the parent’s font (Arial, sans-serif) */
+    font-size: inherit;        /* pick up the parent’s size (e.g. 1rem) */
+    font-weight: inherit;      /* if your links use a different weight */
+    cursor: pointer;           /* keep it feeling like a button */
+}
+
+/* remove the old green hover so it doesn’t clash */
+.sidebar .submenu form .action-button:hover {
+    background-color: #4CAF50; /* if you still want a hover effect */
+}
+
+/* 9. Login button */
+.login-container .login-button {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #43454A;
+    background-color: #4CAF50;
+    color: white;
+    border-radius: 3px;
+    cursor: pointer;
+    text-align: center;
+
+    /* ensure same typography as every other button */
+    font-family: inherit;        /* inherit from <body> (Arial, sans-serif) */
+    font-size: inherit;          /* match the browser’s “medium” size (≈16px) */
+    font-weight: inherit;        /* same weight as surrounding text */
+}
+
+.login-container .login-button:hover {
+    background-color: #45a049;
+}
+
+/* Ensure all .action-button share the same font‐size and colors */
+.action-button {
+    font-size: 1rem;           /* same size across the app */
+    color: #fff;               /* your palette’s light text */
+    background-color: #3a3c40; /* background-color: #007bff; */ /* your primary brand color */
+    border: none;
+    padding: 0.5em 1em;
+    border-radius: 0.25em;
+    cursor: pointer;
+}
+
+/* New: horizontal layout for any “view-header” group */
+.view-header {
+    display: flex;
+    gap: 1rem;        /* consistent spacing */
+    align-items: center;
+    margin-bottom: 1.5em;
+}
+
+.project-section {
+    position: absolute;
+    top: 0;
+    left: 220px;    /* leave room for sidebar */
+    right: 0;
+    bottom: 0;
+    padding: 20px;
+    overflow: auto; /* both axes */
+    text-align: left;
+    background-color: #1e1f22; /* match main bg */
+    color: white;
+}
+
+/* 2. Uniform header buttons */
+.project-section .view-header {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1em;
+}
+
+.project-section .view-header .action-button {
+    flex: 0 0 150px;           /* same width */
+    height: 40px;              /* same height */
+    white-space: nowrap;       /* single line */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;           /* consistent */
+}
+
+/* 3. Title stays top-left (use existing h2 styles but no centering) */
+.project-section h2 {
+    margin-top: 0;
+    margin-bottom: 1em;
+}
+
+/* 4. Scrollable project list */
+.project-list-container {
+    overflow: auto;    /* if many items */
+}
+
+/* Remove bullets and spacing */
+.project-list-container ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* Spacing between items */
+.project-list-container li {
+    margin-bottom: 0.5em;
+}
+
+/* Each project as a full-width button, left-aligned text */
+.project-link-button {
+    width: 100%;
+    text-align: left;
+    padding-left: 1em; /* indent text */
+}
+
+/* Tab headers row */
+.tab-list {
+    display: flex;
+    gap: 0.5rem;
+    list-style: none;
+    padding: 0;
+    margin: 0 0 0.5em 0;
+}
+
+/* Each tab button */
+.tab-list .tab {
+    padding: 0.5em 1em;
+    cursor: pointer;
+    background-color: #2a2b2f; /* slightly darker than main bg */
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    font-size: 1rem;
+    color: #fff;
+    white-space: nowrap;
+}
+
+/* Active tab matches action-button palette */
+.tab-list .tab.active {
+    background-color: #007bff; /* same as .action-button bg */
+    color: #fff;
+}
+
+/* Container around the panes */
+.tab-content {
+    border: 1px solid #2a2b2f;
+    padding: 1em;
+    background-color: #1e1f22;
+}
+
+/* Hide inactive panes */
+.tab-pane {
+    display: none;
+}
+
+/* Show only the active pane */
+.tab-pane.active {
+    display: block;
+    min-height: 200px; /* just so it has some height */
+}
+
+/* In styles.css, to indent tasks more under each work package */
+.work-package-header {
+    margin-top: 1em;
+    font-weight: bold;
+}
+
+.task-link-button {
+    width: calc(100% - 2em);   /* slightly narrower than full width */
+    margin-left: 2em;          /* indent under its parent work package */
+    text-align: left;
 }

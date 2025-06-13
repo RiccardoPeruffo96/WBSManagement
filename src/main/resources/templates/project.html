@@ -30,8 +30,8 @@
             <li th:each="proj : ${assignedProjects}">
                 <!-- each project as a full-width button -->
                 <button class="action-button project-link-button"
-                        th:onclick="|window.location='@{/project/{id}(id=${proj})}'|"
-                        th:text="${proj}">
+                        th:onclick="|window.location='@{/project/{id}(id=${proj.split(' - ')[0]})}'|"
+                        th:text="${proj.split(' - ')[1]}">
                 </button>
             </li>
         </ol>

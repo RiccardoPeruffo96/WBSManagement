@@ -1,5 +1,54 @@
-<section xmlns:th="http://www.thymeleaf.org" th:fragment="content" class="homepage-section">
-    <h2>Home Tracking</h2>
-    <p>Welcome to the Time Tracking System.</p> <!-- hello world -->
-    <!-- form o tabella -->
+<section xmlns:th="http://www.thymeleaf.org" th:fragment="content" class="project-section">
+    <!-- Header with navigation and week controls -->
+    <div class="view-header">
+        <!-- Buttons to navigate previous/next week -->
+        <button class="action-button"
+                th:onclick="|window.location='@{/home-tracking/{prevMonday}(prevMonday=${prevMonday})}'|">
+            Previous Week
+        </button>
+        <h4>Target week: <span th:text="${monday}"></span> - <span th:text="${sunday}"></span></h4>
+        <button class="action-button"
+                th:onclick="|window.location='@{/home-tracking/{nextMonday}(nextMonday=${nextMonday})}'|">
+            Next Week
+        </button>
+    </div>
+
+    <!-- Note displaying today's date -->
+    <div class="form-container" style="margin-top:2em;">
+        <p>Today is <span th:text="${today}"></span>.</p>
+    </div>
+
+    <!-- Read-only table showing reported hours for each day -->
+    <div class="form-container" style="margin-top:2em;">
+        <table>
+            <thead>
+            <tr>
+                <th>Day</th>
+                <th>Hours</th>
+            </tr>
+            </thead>
+            <tbody>
+            <!-- Iterate each day entry in the week -->
+            <tr th:each="day : ${workweek}">
+                <td>
+                    <button class="action-button home-tracking-link-button"
+                            th:onclick="|window.location='@{/home-tracking/{targetDay}/add-home-tracking(targetDay=${day.key})}'|"
+                            th:text="${day.key}">
+                    </button>
+                </td>
+                <td th:text="${day.value}"></td>
+            </tr>
+            <!-- Row for weekly total -->
+            <tr>
+                <td>Total</td>
+                <td th:text="${weeklyTotal}"></td>
+            </tr>
+            <!-- Row for contracted hours per week -->
+            <tr>
+                <td>Contract Hours</td>
+                <td th:text="${contractHours}"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
 </section>

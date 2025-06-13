@@ -1,4 +1,3 @@
-<!-- manage-researcher.html -->
 <section xmlns:th="http://www.thymeleaf.org"
          th:fragment="content"
          class="project-section">
@@ -11,7 +10,56 @@
     </div>
 
     <div class="form-container">
-        <h2>Manage Researcher</h2>
-        <p>Placeholder: researcher‐management UI to be implemented here.</p>
+        <!-- Add Researcher -->
+        <h2>Add Researcher</h2>
+        <form th:action="@{/project/{key}/manage-researchers/add(key=${projectKey})}"
+              method="post">
+            <label for="addResearcher">Select researcher to add</label>
+            <select id="addResearcher"
+                    name="researcherId"
+                    class="input-field"
+                    required>
+                <option value="" disabled selected>Select one…</option>
+                <option th:each="res : ${availableResearchers}"
+                        th:value="${res.split(' - ')[0]}"
+                        th:text="${res.split(' - ')[1]}">
+                </option>
+            </select>
+            <div class="view-header" style="margin-top:1em;">
+                <input type="submit"
+                       value="Add"
+                       class="action-button"/>
+            </div>
+        </form>
+        <p th:if="${addMessage}"
+           th:text="${addMessage}"
+           style="margin-top:0.5em;"></p>
+    </div>
+
+    <div class="form-container" style="margin-top:2em;">
+        <!-- Remove Researcher -->
+        <h2>Remove Researcher</h2>
+        <form th:action="@{/project/{key}/manage-researchers/remove(key=${projectKey})}"
+              method="post">
+            <label for="removeResearcher">Select researcher to remove</label>
+            <select id="removeResearcher"
+                    name="researcherId"
+                    class="input-field"
+                    required>
+                <option value="" disabled selected>Select one…</option>
+                <option th:each="res : ${projectResearchers}"
+                        th:value="${res.split(' - ')[0]}"
+                        th:text="${res.split(' - ')[1]}">
+                </option>
+            </select>
+            <div class="view-header" style="margin-top:1em;">
+                <input type="submit"
+                       value="Remove"
+                       class="action-button"/>
+            </div>
+        </form>
+        <p th:if="${removeMessage}"
+           th:text="${removeMessage}"
+           style="margin-top:0.5em;"></p>
     </div>
 </section>

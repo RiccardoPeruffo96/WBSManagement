@@ -18,8 +18,8 @@
                   and the visible text becomes the title.
                 -->
                 <option th:each="proj : ${projects}"
-                        th:value="${proj}"
-                        th:text="${proj}">
+                        th:value="${proj.split(' - ')[0]}"
+                        th:text="${proj.split(' - ')[1]}">
                 </option>
             </select>
 

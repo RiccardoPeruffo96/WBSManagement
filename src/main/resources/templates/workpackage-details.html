@@ -1,0 +1,61 @@
+<section xmlns:th="http://www.thymeleaf.org"
+         th:fragment="content"
+         class="project-section">
+
+    <!-- 1. Return to Project -->
+    <div class="view-header">
+        <button class="action-button"
+                th:onclick="|window.location='@{/project/{key}(key=${projectKey})}'|">
+            Return to project
+        </button>
+    </div>
+
+    <!-- 2. Work Package Heading -->
+    <h2 th:text="'Work package: ' + ${workPackageTitle}"></h2>
+
+    <!-- 3. Update Start/End Dates Form -->
+    <div class="form-container">
+        <h3>Update Dates</h3>
+        <form th:action="@{/project/{proj}/workpackage/{wp}/update-dates(proj=${projectKey},wp=${workPackageId})}"
+              method="post">
+            <label for="startDate">Start Date</label>
+            <input type="date"
+                   id="startDate"
+                   name="startDate"
+                   class="input-field"
+                   th:value="${startDate}"
+                   required />
+
+            <label for="endDate">End Date</label>
+            <input type="date"
+                   id="endDate"
+                   name="endDate"
+                   class="input-field"
+                   th:value="${endDate}"
+                   required />
+
+            <div class="view-header" style="margin-top:1em;">
+                <input type="submit"
+                       class="action-button"
+                       value="Update Dates" />
+            </div>
+        </form>
+        <p th:if="${updateMessage}"
+           th:text="${updateMessage}"
+           style="margin-top:0.5em;"></p>
+    </div>
+
+    <!-- 4. Delete Work Package -->
+    <div class="form-container" style="margin-top:2em;">
+        <h3>Delete Work Package</h3>
+        <form th:action="@{/project/{proj}/workpackage/{wp}/delete(proj=${projectKey},wp=${workPackageId})}"
+              method="post">
+            <div class="view-header">
+                <input type="submit"
+                       class="action-button"
+                       value="Delete" />
+            </div>
+        </form>
+    </div>
+
+</section>

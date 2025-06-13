@@ -9,9 +9,26 @@
 <body>
 <div class="login-container">
     <h2>Login</h2>
-    <form action="/login" method="post">
-        <label for="email">Email</label>
-        <input type="text" id="email" name="email" class="input-field">
+
+    <!-- Error message on authentication failure -->
+    <p th:if="${errorMessage}"
+       th:text="${errorMessage}"
+       style="color: #ff6b6b; margin-bottom: 15px;">
+    </p>
+
+    <!-- Logout success message -->
+    <p th:if="${logoutMessage}"
+       th:text="${logoutMessage}"
+       style="color: #4CAF50; margin-bottom: 15px;">
+    </p>
+
+    <!--
+      Keep the form action pointing to /login (which Spring Security will handle).
+      The method should remain POST.
+    -->
+    <form th:action="@{/login}" method="post">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" class="input-field">
 
         <div class="password-container">
             <label for="password">Password</label>
@@ -19,6 +36,7 @@
         </div>
         <input type="password" id="password" name="password" class="input-field">
 
+        <!-- Login button -->
         <input type="submit" value="Login" class="login-button">
     </form>
 </div>

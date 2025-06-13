@@ -13,6 +13,10 @@
     <div class="form-container">
         <h2>Add Work Package</h2>
 
+        <p th:if="${message}"
+           th:text="${message}"
+           style="margin-top:0.5em;"></p>
+
         <form th:action="@{/project/{key}/add-workpackage(key=${projectKey})}" method="post">
             <label for="name">Name</label>
             <input type="text"

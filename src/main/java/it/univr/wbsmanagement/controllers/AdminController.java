@@ -16,7 +16,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * AdminController handles administrator actions such as creating new users.
+ * AdminController handles administrative tasks such as user management and role changes.
+ * It is secured to allow only users with the "Administrator" role.
  */
 @Controller
 @PreAuthorize("hasRole('Administrator')")

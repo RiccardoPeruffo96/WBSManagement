@@ -11,46 +11,69 @@
         </button>
     </div>
 
+    <!-- (Optional) Display the project title at the top -->
+    <h3 th:text="'Project: ' + ${projectTitle} + ' ' + ${message}"></h3>
+
+
+    <!-- 3. Supervisor-only action buttons -->
+    <div th:if="${isSupervisor}"
+         class="view-header"
+         style="margin-bottom: 1.5em;">
+        <button class="action-button"
+                th:onclick="|window.location='@{/project/{key}/manage-researchers(key=${projectKey})}'|">
+            Manage researcher
+        </button>
+        <button class="action-button"
+                th:onclick="|window.location='@{/project/{key}/add-workpackage(key=${projectKey})}'|">
+            Add work package
+        </button>
+        <button class="action-button"
+                th:onclick="|window.location='@{/project/{key}/add-task(key=${projectKey})}'|">
+            Add task
+        </button>
+        <button class="action-button"
+                th:onclick="|window.location='@{/project/{key}/manage-milestone(key=${projectKey})}'|">
+            Manage milestone
+        </button>
+        <button class="action-button"
+                th:onclick="|window.location='@{/project/{key}/archive(key=${projectKey})}'|">
+            Archive project
+        </button>
+    </div>
+
     <!-- 2. Tab headers -->
     <div class="tab-container">
         <ul class="tab-list">
             <li class="tab active" data-tab="work-tree">Work tree schema</li>
-            <li class="tab"       data-tab="tasks">Task assigned to me</li>
-            <li class="tab"       data-tab="gantt">Gantt diagram</li>
+            <li class="tab" data-tab="tasks" th:if="${isResearcher}">Task assigned to me</li>
         </ul>
 
-        <!-- 3. Tab content panes (all empty placeholders for now) -->
+        <!-- 3. Tab content panes -->
         <div class="tab-content">
+            <!-- 3.1 Work tree pane: iterate workPackages → tasks -->
             <div id="work-tree" class="tab-pane active">
-                <!-- Placeholder for Work tree schema -->
-            </div>
-            <div id="tasks" class="tab-pane">
-                <!-- Placeholder for Task assigned to me -->
-            </div>
-            <div id="gantt" class="tab-pane">
-                <!-- Placeholder for Gantt diagram -->
+                <ol>
+                    <!-- Each wpEntry is a Map with keys: id, title, tasks -->
+                    <li th:each="wpEntry : ${workPackages}">
+                        <!-- Display Work Package header -->
+                        <button class="action-button workpackage-link-button"
+                                th:onclick="|window.location='@{/project/{key}/workpackage/{wp}(key=${projectKey},wp=${wpEntry.id})}'|"
+                                th:text="'Work package ' + ${wpEntry.id} + ' - ' + ${wpEntry.title}">
+                        </button>
+
+                        <!-- Nested list of tasks under this work package -->
+                        <ol>
+                            <!-- Each taskStr is a String like "5 - Implement UI" -->
+                            <li th:each="taskStr : ${wpEntry.tasks}">
+                                <button class="action-button task-link-button"
+                                        th:onclick="|window.location='@{/task/{taskId}(taskId=${taskStr.split(' - ')[0]})}'|"
+                                        th:text="'Task ' + ${taskStr.split(' - ')[0]} + ' - ' + ${taskStr.split(' - ')[1]}">
+                                </button>
+                            </li>
+                        </ol>
+                    </li>
+                </ol>
             </div>
         </div>
     </div>
-
 </section>
-
-<!-- 4. Tab-switching script -->
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const tabs  = document.querySelectorAll('.tab-list .tab');
-        const panes = document.querySelectorAll('.tab-pane');
-
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                // deactivate all
-                tabs.forEach(t => t.classList.remove('active'));
-                panes.forEach(p => p.classList.remove('active'));
-
-                // activate clicked tab + matching pane
-                tab.classList.add('active');
-                document.getElementById(tab.dataset.tab).classList.add('active');
-            });
-        });
-    });
-</script>

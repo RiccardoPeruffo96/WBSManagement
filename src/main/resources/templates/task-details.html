@@ -1,0 +1,156 @@
+<section xmlns:th="http://www.thymeleaf.org"
+         th:fragment="content"
+         class="project-section">
+
+    <!-- Return button -->
+    <div class="view-header">
+        <button class="action-button"
+                th:onclick="|window.location='@{/project/{key}(key=${projectId})}'|">
+            Return to project
+        </button>
+        <button class="action-button"
+                th:onclick="|window.location='@{/task/{taskId}/delete(taskId=${taskId})}'|">
+            Delete task
+        </button>
+    </div>
+
+    <!-- Project / WP / Task headings -->
+    <div class="form-container">
+        <h2 th:text="'Task: ' + ${taskTitle}"></h2>
+        <h5 th:text="'Deadline: ' + ${tDeadline}"></h5>
+        <br>
+        <h5 th:text="'Project: ' + ${projectTitle}"></h5>
+        <h5 th:text="'Work package: ' + ${workPackageTitle}"></h5>
+        <h5 th:text="'Start date: ' + ${wpStartDate}"></h5>
+        <h5 th:text="'End date: ' + ${wpEndDate}"></h5>
+        <br>
+        <h5 th:text="'Priority: ' + ${priority_name}"></h5>
+        <h5 th:text="'Status: ' + ${status_name}"></h5>
+    </div>
+
+    <!-- Update status and priority -->
+    <div class="form-container" style="margin-top:2em;">
+        <h2>Change status and priority</h2>
+        <form th:action="@{/task/{taskId}/assignments/updateStatusAndPriority(taskId=${taskId})}"
+              method="post">
+            <label for="priorityId">New Priority</label>
+            <select id="priorityId"
+                    name="priorityId"
+                    class="input-field"
+                    required>
+                <option value="" disabled selected>Select one…</option>
+                <option th:each="id : ${allPriority}"
+                        th:value="${id.split(' - ')[0]}"
+                        th:text="${id.split(' - ')[1]}">
+                </option>
+            </select>
+
+            <label for="statusId">New Status</label>
+            <select id="statusId"
+                    name="statusId"
+                    class="input-field"
+                    required>
+                <option value="" disabled selected>Select one…</option>
+                <option th:each="id : ${allStatus}"
+                        th:value="${id.split(' - ')[0]}"
+                        th:text="${id.split(' - ')[1]}">
+                </option>
+            </select>
+
+            <div class="view-header" style="margin-top:1em;">
+                <input type="submit"
+                       class="action-button"
+                       value="Change" />
+            </div>
+        </form>
+        <p th:if="${updateStatusAndPriority}"
+           th:text="${updateStatusAndPriority}"
+           style="margin-top:0.5em;"></p>
+    </div>
+
+    <!-- Add researcher to task -->
+    <div class="form-container" style="margin-top:2em;">
+        <h2>Add Researcher to Task</h2>
+        <form th:action="@{/task/{taskId}/assignments/add(taskId=${taskId})}"
+              method="post">
+            <label for="userId">Researcher</label>
+            <select id="userId"
+                    name="userId"
+                    class="input-field"
+                    required>
+                <option value="" disabled selected>Select one…</option>
+                <option th:each="res : ${availableResearchers}"
+                        th:value="${res.split(' - ')[0]}"
+                        th:text="${res.split(' - ')[1]}">
+                </option>
+            </select>
+
+            <label for="effortHypothetic">Effort Hypothetic (hrs)</label>
+            <input type="number"
+                   id="effortHypothetic"
+                   name="effortHypothetic"
+                   class="input-field"
+                   min="0"
+                   required />
+
+            <div class="view-header" style="margin-top:1em;">
+                <input type="submit"
+                       class="action-button"
+                       value="Add" />
+            </div>
+        </form>
+        <p th:if="${addAssignmentMessage}"
+           th:text="${addAssignmentMessage}"
+           style="margin-top:0.5em;"></p>
+    </div>
+
+    <!-- Remove researcher from task -->
+    <div class="form-container" style="margin-top:2em;">
+        <h2>Remove Researcher from Task</h2>
+        <form th:action="@{/task/{taskId}/assignments/remove(taskId=${taskId})}"
+              method="post">
+            <label for="assignedUserId">Researcher</label>
+            <select id="assignedUserId"
+                    name="userId"
+                    class="input-field"
+                    required>
+                <option value="" disabled selected>Select one…</option>
+                <option th:each="ass : ${assignedResearchers}"
+                        th:value="${ass.split(' - ')[0]}"
+                        th:text="${ass.split(' - ')[1]}">
+                </option>
+            </select>
+
+            <div class="view-header" style="margin-top:1em;">
+                <input type="submit"
+                       class="action-button"
+                       value="Remove" />
+            </div>
+        </form>
+        <p th:if="${removeAssignmentMessage}"
+           th:text="${removeAssignmentMessage}"
+           style="margin-top:0.5em;"></p>
+    </div>
+
+    <!-- Current assignments table -->
+    <div class="form-container" style="margin-top:2em;">
+        <h2>Current Assignments</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>User</th>
+                <th>Effort Consumed</th>
+                <th>Effort Hypothetic</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="ass : ${assignments}">
+                <td th:text="${ass.userName}"></td>
+                <td th:text="${ass.effortConsumed}"></td>
+                <td th:text="${ass.effortHypothetic}"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+</section>

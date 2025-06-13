@@ -9,12 +9,14 @@ import java.util.Map;
 
 import it.univr.wbsmanagement.models.User;
 
+import static java.lang.Math.abs;
+
 /**
  * Provides methods for managing the database connection and operations.
  *
- * <p>This class is responsible for setting up the database structure, validating user credentials,
+ * This class is responsible for setting up the database structure, validating user credentials,
  * updating user information, managing roles, handling recover credentials requests, and managing
- * privacy policy acceptance. The underlying database is an SQLite database.</p>
+ * privacy policy acceptance. The underlying database is an SQLite database.
  */
 public class DatabaseManager {
 
@@ -123,6 +125,39 @@ public class DatabaseManager {
             WHERE NOT EXISTS (SELECT 1 FROM users WHERE email='researcher');
         """;
 
+    private static final String insertNotWorkingHoursDestination = """
+            INSERT INTO projects (title, description, created_by_admin_id, supervisor_id)
+            SELECT 'TimeOffProj', 'Contains various reason to have time off-working', (SELECT id FROM users WHERE email='admin'), (SELECT id FROM users WHERE email='supervisor')
+            WHERE NOT EXISTS (SELECT 1 FROM projects WHERE title='TimeOffProj');
+        
+            INSERT INTO work_packages (project_id, title, description, start_date, end_date)
+            SELECT (SELECT id FROM projects WHERE title='TimeOffProj'), 'TimeOffWP_Charg', 'It contains the vacancy task', CAST('1980-01-01' AS DATE), CAST('2099-12-31' AS DATE)
+            WHERE NOT EXISTS (SELECT 1 FROM work_packages WHERE title='TimeOffWP_Charg');
+            
+            INSERT INTO tasks (work_package_id, title, description, duration_hours, effort_hours, deadline, priority_id, status_id)
+            SELECT (SELECT id FROM work_packages WHERE title='TimeOffWP_Charg'), 'Generic_not_work', 'Hours not worked by the user', 0, 0, CAST('2099-12-31' AS DATE), (SELECT id FROM priority WHERE priority_name = 'Low'), (SELECT id FROM status WHERE status_name = 'Completed')
+            WHERE NOT EXISTS (SELECT 1 FROM tasks WHERE title='Generic_not_work');
+            
+            INSERT INTO work_packages (project_id, title, description, start_date, end_date)
+            SELECT (SELECT id FROM projects WHERE title='TimeOffProj'), 'TimeOffWP_NotCharg', 'It contains the not chargable task - like blood donation', CAST('1980-01-01' AS DATE), CAST('2099-12-31' AS DATE)
+            WHERE NOT EXISTS (SELECT 1 FROM work_packages WHERE title='TimeOffWP_NotCharg');
+            
+            INSERT INTO tasks (work_package_id, title, description, duration_hours, effort_hours, deadline, priority_id, status_id)
+            SELECT (SELECT id FROM work_packages WHERE title='TimeOffWP_NotCharg'), 'Medical_certification', 'Hours not worked by the user certificated by a doctor', 0, 0, CAST('2099-12-31' AS DATE), (SELECT id FROM priority WHERE priority_name = 'Low'), (SELECT id FROM status WHERE status_name = 'Completed')
+            WHERE NOT EXISTS (SELECT 1 FROM tasks WHERE title='Medical_certification');
+            
+            INSERT INTO tasks (work_package_id, title, description, duration_hours, effort_hours, deadline, priority_id, status_id)
+            SELECT (SELECT id FROM work_packages WHERE title='TimeOffWP_NotCharg'), 'Blood_donation', 'Hours not worked by the user for blood donation', 0, 0, CAST('2099-12-31' AS DATE), (SELECT id FROM priority WHERE priority_name = 'Low'), (SELECT id FROM status WHERE status_name = 'Completed')
+            WHERE NOT EXISTS (SELECT 1 FROM tasks WHERE title='Blood_donation');
+            
+            INSERT INTO tasks (work_package_id, title, description, duration_hours, effort_hours, deadline, priority_id, status_id)
+            SELECT (SELECT id FROM work_packages WHERE title='TimeOffWP_NotCharg'), 'Exam', 'Hours not worked by the user for certificate exam', 0, 0, CAST('2099-12-31' AS DATE), (SELECT id FROM priority WHERE priority_name = 'Low'), (SELECT id FROM status WHERE status_name = 'Completed')
+            WHERE NOT EXISTS (SELECT 1 FROM tasks WHERE title='Exam');
+            
+            INSERT INTO tasks (work_package_id, title, description, duration_hours, effort_hours, deadline, priority_id, status_id)
+            SELECT (SELECT id FROM work_packages WHERE title='TimeOffWP_NotCharg'), 'Public_Holyday', 'Public holyday', 0, 0, CAST('2099-12-31' AS DATE), (SELECT id FROM priority WHERE priority_name = 'Low'), (SELECT id FROM status WHERE status_name = 'Completed')
+            WHERE NOT EXISTS (SELECT 1 FROM tasks WHERE title='Public_Holyday');
+        """;
 
     private static final String createRecoverCredentialsRequestsTableSQL = """
             CREATE TABLE IF NOT EXISTS recover_credentials_requests (
@@ -136,7 +171,7 @@ public class DatabaseManager {
     private static final String createProjectsTableSQL = """
             CREATE TABLE IF NOT EXISTS projects (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                title VARCHAR(255) NOT NULL,
+                title VARCHAR(255) NOT NULL UNIQUE,
                 description VARCHAR(255),
                 created_by_admin_id INT NOT NULL,
                 supervisor_id INT NOT NULL,
@@ -170,7 +205,7 @@ public class DatabaseManager {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 effort_hours INT NOT NULL,
                 duration_hours INT NOT NULL,
-                deadline TIMESTAMP NOT NULL,
+                deadline DATE NOT NULL,
                 priority_id INT NOT NULL,
                 status_id INT NOT NULL,
                 FOREIGN KEY (work_package_id) REFERENCES work_packages(id) ON DELETE CASCADE
@@ -260,6 +295,10 @@ public class DatabaseManager {
     private static final String queryRoles = "SELECT role_name FROM roles";
     private static final String queryPriority = "SELECT id, priority_name FROM priority";
     private static final String queryStatus = "SELECT id, status_name FROM status";
+    private static final String queryPriorityById = "SELECT priority_name FROM priority WHERE id = ?";
+    private static final String queryStatusById = "SELECT status_name FROM status WHERE id = ?";
+    private static final String queryUpdatePriorityTask = "UPDATE tasks SET priority_id = ? WHERE id = ?";
+    private static final String queryUpdateStatusTask = "UPDATE tasks SET status_id = ? WHERE id = ?";
     private static final String insertRolesIdFromRoleName = "SELECT id FROM roles WHERE role_name = ?";
     private static final String insertUser = """
             INSERT INTO users (email, password, role_id, working_hours_weekly, privacy_accepted)
@@ -330,6 +369,14 @@ public class DatabaseManager {
             WHERE pv.project_id = ?
               AND role_id = (SELECT id FROM roles WHERE role_name = 'Researcher')
         """;
+    private static final String queryUsersResearchersByProjectIdAndExcludedByTaskId = """
+            SELECT DISTINCT u.id, u.email
+            FROM users u
+            INNER JOIN project_visibility pv ON u.id = pv.user_id
+            WHERE pv.project_id = ?
+              AND role_id = (SELECT id FROM roles WHERE role_name = 'Researcher')
+              AND NOT EXISTS (SELECT 1 FROM task_assignments ta WHERE ta.user_id = u.id AND ta.task_id = ?)
+        """;
     private static final String queryUsersResearchersExcludingProjectId = """
             SELECT DISTINCT u.id, u.email
             FROM users u
@@ -369,6 +416,8 @@ public class DatabaseManager {
         """;
     private static final String queryProjectsActive = "SELECT DISTINCT id, title FROM projects WHERE archived = FALSE";
     private static final String queryProjectsArchived = "SELECT DISTINCT id, title FROM projects WHERE archived = TRUE";
+    private static final String queryIsProjectsArchivedById = "SELECT archived FROM projects WHERE id = ?";
+    private static final String queryUpdateProjectsInArchived = "UPDATE projects SET archived = TRUE WHERE id = ?";
     private static final String insertMilestone = """
             INSERT INTO milestones (project_id, title, description)
             VALUES (?, ?, ?)
@@ -399,6 +448,7 @@ public class DatabaseManager {
             GROUP BY task_id_blocked
         """;
     private static final String queryWorkPackageTimeRangeById = "SELECT start_date, end_date FROM work_packages WHERE id = ?";
+    private static final String queryWorkPackageById = "SELECT start_date, end_date, title, project_id FROM work_packages WHERE id = ?";
     private static final String queryTasksByProjectId = """
             SELECT DISTINCT t.id, t.title
             FROM work_packages wp
@@ -420,8 +470,74 @@ public class DatabaseManager {
             INSERT INTO task_assignments (task_id, user_id, effort_hypothetic, effort_consumed)
             VALUES (?, ?, ?, 0)
         """;
-    private static final String querySingleTaskById = "SELECT * FROM tasks WHERE id = ?";
+    private static final String queryTaskTitleById = "SELECT DISTINCT title FROM tasks WHERE id = ?";
     private static final String queryProjectTitleById = "SELECT DISTINCT title FROM projects WHERE id = ?";
+    private static final String querySupervisorIdByProjectId = "SELECT supervisor_id FROM projects WHERE id = ?";
+    private static final String queryDeleteProjectVisibility = "DELETE FROM project_visibility WHERE project_id = ? AND user_id = ?";
+    private static final String queryDeleteTaskAssignments = "DELETE FROM task_assignments WHERE task_id = ? AND user_id = ?";
+
+    // "SELECT wp.id AS workflow_id, wp.title AS workflow_title, p.id AS project_id, p.title AS project_title, t.title  AS task_title FROM tasks t INNER JOIN work_packages wp ON t.work_package_id = wp.id INNER JOIN projects p ON wp.project_id = p.id WHERE t.id = ?";
+    private static final String queryProjectAndWorkPackageFromTaskId = """
+            SELECT proj.id AS proj_id, proj.title AS proj_title, wp.id AS wp_id, wp.title AS wp_title, wp.start_date AS wp_sdate, wp.end_date AS wp_edate, t.title AS t_title, t.deadline AS t_deadline, t.priority_id AS t_priorityId, t.status_id AS t_statusId 
+            FROM tasks t
+            INNER JOIN work_packages wp ON t.work_package_id = wp.id
+            INNER JOIN projects proj ON wp.project_id = proj.id
+            WHERE t.id = ?
+        """;
+    private static final String queryWorkingHoursWeeklyByUserId = "SELECT working_hours_weekly FROM users WHERE id = ?";
+    private static final String queryUserRowByUserEmail = "SELECT u.email, u.password, u.id as user_id, r.role_name, r.id as role_id FROM users u JOIN roles r ON u.role_id = r.id WHERE u.email = ? ";
+    private static final String queryRetrieveTimeEntriesByUserAndWeek = """
+        SELECT tes.entry_date AS tes_entry_date, wp.project_id AS wp_project_id, t.id AS tes_task_id, tes.hours AS tes_hours
+        FROM time_entries tes
+        INNER JOIN tasks t ON tes.task_id = t.id
+        INNER JOIN work_packages wp ON wp.id = t.work_package_id
+        WHERE tes.user_id = ? 
+          AND tes.entry_date >= ? 
+          AND tes.entry_date <= ?
+        ORDER BY tes_entry_date, wp_project_id, tes_task_id
+    """;
+    // Queste sono i progetti e task a cui è associato attivamente un utente per cui oggi non ha abbia già inserito un record
+    private static final String queryRetrieveTimeEntriesAvaibilityByUserAndDay = """
+        SELECT projs.id AS projs_id, projs.title AS projs_title, t.id AS task_id, t.title AS task_title
+        FROM project_visibility pv
+        INNER JOIN projects projs ON projs.id = pv.project_id
+        INNER JOIN work_packages wp ON wp.project_id = pv.project_id
+        INNER JOIN task_assignments taskAsgn ON taskAsgn.user_id = pv.user_id
+        INNER JOIN tasks t ON t.id = taskAsgn.task_id
+        WHERE taskAsgn.user_id = ?
+          AND archived = FALSE
+          AND NOT EXISTS (SELECT 1 FROM time_entries te
+                          WHERE te.task_id = taskAsgn.task_id
+                            AND te.user_id = taskAsgn.user_id
+                            AND te.entry_date = ?)
+    """;
+    private static final String queryNonWorkingTasks = """
+        SELECT projs.id AS projs_id, projs.title AS projs_title, t.id AS task_id, t.title AS task_title
+        FROM projects projs
+        INNER JOIN work_packages wp ON wp.project_id = projs.id
+        INNER JOIN tasks t ON t.work_package_id = wp.id
+        WHERE projs.title = 'TimeOffProj'
+    """;
+    private static final String updateEffortConsumedInTaskAssignments = """
+        UPDATE task_assignments
+        SET effort_consumed = ?
+        WHERE user_id = ?
+          AND task_id = ?
+    """;
+    private static final String queryEffortConsumedInTaskAssignments = "SELECT t.effort_consumed, t.effort_hypothetic FROM task_assignments t WHERE t.user_id = ? AND t.task_id = ?";
+    private static final String querySingleTimeEntryHours = """
+        SELECT hours
+        FROM time_entries
+        WHERE user_id = ?
+          AND task_id = ?
+          AND entry_date = ?
+    """;
+    private static final String queryRemoveSingleTimeEntryHours = """
+        DELETE FROM time_entries
+        WHERE user_id = ?
+          AND task_id = ?
+          AND entry_date = ?
+    """;
 
     /**
      * Sets the currently authenticated user.
@@ -444,16 +560,16 @@ public class DatabaseManager {
         return DriverManager.getConnection(DB_URL, "sa", "");
     }
 
+    /**
+     * Validates user credentials against the database.
+     *
+     * @param email    the user's email.
+     * @param password the user's password.
+     * @return a User object if credentials are valid; otherwise, returns null.
+     */
     public static Map<String, String> getUserRowByEmail(String email) {
-        String sql = """
-        SELECT u.email, u.password, r.role_name
-        FROM users u
-        JOIN roles r ON u.role_id = r.id
-        WHERE u.email = ?
-    """;
-
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement ps = conn.prepareStatement(queryUserRowByUserEmail)) {
 
             ps.setString(1, email);
             try (ResultSet rs = ps.executeQuery()) {
@@ -461,9 +577,11 @@ public class DatabaseManager {
                     return null; // user non trovato
                 }
                 Map<String, String> row = new HashMap<>();
+                row.put("user_id", rs.getString("user_id"));
                 row.put("email", rs.getString("email"));
                 row.put("password", rs.getString("password"));
                 row.put("role_name", rs.getString("role_name"));
+                row.put("role_id", rs.getString("role_id"));
                 return row;
             }
         } catch (SQLException e) {
@@ -475,8 +593,8 @@ public class DatabaseManager {
     /**
      * Sets up the database structure by creating necessary tables and inserting default values.
      *
-     * <p>It creates the 'roles', 'users', 'recover_credentials_requests' tables if they do not exist,
-     * inserts default roles and an administrator user, and logs success or error messages to the console.</p>
+     * It creates the 'roles', 'users', 'recover_credentials_requests' tables if they do not exist,
+     * inserts default roles and an administrator user, and logs success or error messages to the console.
      */
     public static void setupDatabase() {
         try (Connection conn = getConnection();
@@ -534,6 +652,11 @@ public class DatabaseManager {
                     stmtSetupDatabase.execute(sql);
                 }
             }
+            for (String sql : insertNotWorkingHoursDestination.split(";")) {
+                if (!sql.trim().isEmpty()) {
+                    stmtSetupDatabase.execute(sql);
+                }
+            }
 
             System.out.println("Database structure set up successfully (H2).");
 
@@ -541,6 +664,7 @@ public class DatabaseManager {
             System.err.println("Error setting up the database: " + e.getMessage());
         }
     }
+    
     /**
      * Retrieves the role name of a user based on their email.
      *
@@ -620,16 +744,18 @@ public class DatabaseManager {
     /**
      * Retrieves all role names available in the system.
      *
+     * @param formatWithIndex Define the return format, if true every string has the format "index - value", else "value".
      * @return an array of role names.
      */
-    public static String[] getAllPriority() {
+    public static String[] getAllPriority(boolean formatWithIndex) {
         List<String> priority = new ArrayList<>();
 
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmtPriority = conn.prepareStatement(queryPriority);
              ResultSet rsPriority = stmtPriority.executeQuery()) {
             while (rsPriority.next()) {
-                priority.add(rsPriority.getInt("id") + " - " + rsPriority.getString("priority_name"));
+                String priorityUniqueName = ((formatWithIndex) ? (rsPriority.getInt("id") + " - ") : ("")) + rsPriority.getString("priority_name");
+                priority.add(priorityUniqueName);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -638,18 +764,45 @@ public class DatabaseManager {
     }
 
     /**
-     * Retrieves all role names available in the system.
+     * Retrieves status names available in the system.
      *
+     * @param priorityId priority id.
+     * @param formatWithIndex Define the return format, if true every string has the format "index - value", else "value".
      * @return an array of role names.
      */
-    public static String[] getAllStatus() {
+    public static String getPriorityById(int priorityId, boolean formatWithIndex) {
+        String priority = "";
+
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement stmtPriority = conn.prepareStatement(queryPriorityById)){
+
+            stmtPriority.setInt(1, priorityId);
+            ResultSet rsPriority = stmtPriority.executeQuery();
+
+            while (rsPriority.next()) {
+                priority = ((formatWithIndex) ? (priorityId + " - ") : ("")) + rsPriority.getString("priority_name");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return priority;
+    }
+
+    /**
+     * Retrieves all role names available in the system.
+     *
+     * @param formatWithIndex Define the return format, if true every string has the format "index - value", else "value".
+     * @return an array of role names.
+     */
+    public static String[] getAllStatus(boolean formatWithIndex) {
         List<String> status = new ArrayList<>();
 
         try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement stmtPriority = conn.prepareStatement(queryStatus);
-             ResultSet rsPriority = stmtPriority.executeQuery()) {
-            while (rsPriority.next()) {
-                status.add(rsPriority.getInt("id") + " - " + rsPriority.getString("status_name"));
+             PreparedStatement stmtStatus = conn.prepareStatement(queryStatus);
+             ResultSet rsStatus = stmtStatus.executeQuery()) {
+            while (rsStatus.next()) {
+                String statusUniqueName = ((formatWithIndex) ? (rsStatus.getInt("id") + " - ") : ("")) + rsStatus.getString("status_name");
+                status.add(statusUniqueName);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -658,9 +811,33 @@ public class DatabaseManager {
     }
 
     /**
-     * Updates the role of a specified user.
+     * Retrieves status names available in the system.
      *
-     * <p>For security reasons, the current user is not allowed to change their own role.</p>
+     * @param statusId status id.
+     * @param formatWithIndex Define the return format, if true every string has the format "index - value", else "value".
+     * @return an array of role names.
+     */
+    public static String getStatusById(int statusId, boolean formatWithIndex) {
+        String status = "";
+
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement stmtStatus = conn.prepareStatement(queryStatusById)){
+
+            stmtStatus.setInt(1, statusId);
+            ResultSet rsStatus = stmtStatus.executeQuery();
+
+            while (rsStatus.next()) {
+                status = ((formatWithIndex) ? (statusId + " - ") : ("")) + rsStatus.getString("status_name");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return status;
+    }
+
+    /**
+     * Updates the role of a specified user.
+     * For security reasons, the current user is not allowed to change their own role.
      *
      * @param email the email address of the user whose role is to be updated.
      * @param role  the new role name to assign to the user.
@@ -776,13 +953,12 @@ public class DatabaseManager {
     /**
      * Adds a new recover credentials request for the given email.
      *
-     * <p>If an active request already exists, this method returns the creation timestamp
+     * If an active request already exists, this method returns the creation timestamp
      * of the existing request. Otherwise, it inserts a new request and returns the new
-     * request's creation timestamp.</p>
+     * request's creation timestamp.
      *
      * @param email the email address for which the recovery request is made.
-     * @return a string representation of the creation timestamp of the active recovery request,
-     *         or an empty string if the operation fails.
+     * @return a string representation of the creation timestamp of the active recovery request, or an empty string if the operation fails.
      */
     public static String addRecoverCredentialsRequests(String email) {
         if (email.isEmpty()) {
@@ -840,8 +1016,8 @@ public class DatabaseManager {
     /**
      * Retrieves all active recover credentials requests.
      *
-     * <p>Each element in the returned list is a string array where the first element is the email and
-     * the second element is the creation timestamp of the request.</p>
+     * Each element in the returned list is a string array where the first element is the email and
+     * the second element is the creation timestamp of the request.
      *
      * @return a list of string arrays representing the active recovery requests.
      */
@@ -943,7 +1119,14 @@ public class DatabaseManager {
         }
     }
 
-
+    /**
+     * Retrieves a map of weekly hours worked by a user between two dates.
+     *
+     * @param userId the user id.
+     * @param startDate the start date.
+     * @param endDate the end date.
+     * @return map with LocalDate as key and total hours as value.
+     */
     public static HashMap<LocalDate, Double> getWeeklyHours(int userId, LocalDate startDate, LocalDate endDate) {
         HashMap<LocalDate, Double> weeklyHours = new HashMap<>();
 
@@ -967,6 +1150,10 @@ public class DatabaseManager {
 
     /**
      * Retrieves the total hours recorded for a specific user and date.
+     * 
+     * @param userId The ID of the user.
+     * @param entryDate The date for which to retrieve the total hours. 
+     * @return The total hours worked by the user on the specified date.
      */
     public static double getTotalHoursForDate(int userId, LocalDate entryDate) {
         double totalHours = 0;
@@ -1038,17 +1225,56 @@ public class DatabaseManager {
      *
      * @param userId The ID of the user.
      * @param taskId The ID of the task.
-     * @param entryDate The date of the time entry.
+     * @param targetDate The date of the time entry.
      * @param hours The number of hours worked.
      * @return true if the entry was inserted successfully, false otherwise.
      */
-    public static boolean insertTimeEntry(int userId, int taskId, LocalDate entryDate, double hours) {
+    public static boolean insertTimeEntry(int userId, int taskId, LocalDate targetDate, double hours) {
         try (Connection conn = getConnection();
              PreparedStatement stmtInsertTimeEntry = conn.prepareStatement(insertTimeEntry)) {
+
+            PreparedStatement stmtInsertTimeEntry2 = conn.prepareStatement("SELECT * FROM time_entries WHERE user_id = ? AND task_id = ? AND entry_date = ?");
+            stmtInsertTimeEntry2.setInt(1, userId);
+            stmtInsertTimeEntry2.setInt(2, taskId);
+            stmtInsertTimeEntry2.setDate(3, Date.valueOf(targetDate));
+            ResultSet rsResearchersByProjectId = stmtInsertTimeEntry2.executeQuery();
+
+            while (rsResearchersByProjectId.next()) {
+                var researchersUniqueName = rsResearchersByProjectId.getDouble("hours");
+                researchersUniqueName += 0.0;
+            }
+
             stmtInsertTimeEntry.setInt(1, userId);
             stmtInsertTimeEntry.setInt(2, taskId);
-            stmtInsertTimeEntry.setString(3, entryDate.toString());
+            stmtInsertTimeEntry.setDate(3, Date.valueOf(targetDate));
             stmtInsertTimeEntry.setDouble(4, hours);
+
+            int rowsInserted = stmtInsertTimeEntry.executeUpdate();
+            return rowsInserted > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+    /**
+     * Inserts a new time entry for a user and task.
+     *
+     * @param userId The ID of the user.
+     * @param taskId The ID of the task.
+     * @param effort_consumed The number of used.
+     * @param operationType The operation type, >=1 for addition, -1<= for subtraction and 0 for replace.
+     * @return true if the entry was inserted successfully, false otherwise.
+     */
+    public static boolean updateEffortConsumedInTaskAssignments(int userId, int taskId, int effort_consumed, int operationType) {
+
+        int total_effort_consumed = effort_consumed +
+                                    (getEffortConsumedInTaskAssignments(userId, taskId) * (operationType == 0 ? 0 : operationType / abs(operationType)));
+
+        try (Connection conn = getConnection();
+             PreparedStatement stmtInsertTimeEntry = conn.prepareStatement(updateEffortConsumedInTaskAssignments)) {
+            stmtInsertTimeEntry.setInt(1, total_effort_consumed);
+            stmtInsertTimeEntry.setInt(2, userId);
+            stmtInsertTimeEntry.setInt(3, taskId);
 
             int rowsInserted = stmtInsertTimeEntry.executeUpdate();
             return rowsInserted > 0;
@@ -1127,7 +1353,9 @@ public class DatabaseManager {
     }
 
     /**
-     *
+     *  Retrieves a list of supervisors in the system.
+     * 
+     *  @return An array of supervisors in the format "id - email".
      */
     public static String[] getSupervisors() {
         ArrayList<String> projects = new ArrayList<>();
@@ -1148,9 +1376,13 @@ public class DatabaseManager {
     }
 
     /**
-     *
+     * Retrieves a list of researchers associated with a specific project.
+     * 
+     * @param projectId The ID of the project.
+     * @param formatWithIndex Define the return format, if true every string has the format "index - value", else "value".
+     * @return An array of researchers in the format "id - email".
      */
-    public static String[] getResearchersByProjectId(int projectId) {
+    public static String[] getResearchersByProjectId(int projectId, boolean formatWithIndex) {
         ArrayList<String> projects = new ArrayList<>();
 
         try (Connection conn = getConnection();
@@ -1159,7 +1391,7 @@ public class DatabaseManager {
             ResultSet rsResearchersByProjectId = stmtResearchersByProjectId.executeQuery();
 
             while (rsResearchersByProjectId.next()) {
-                String researchersUniqueName = rsResearchersByProjectId.getString("id") + " - " + rsResearchersByProjectId.getString("email");
+                String researchersUniqueName = ((formatWithIndex) ? (rsResearchersByProjectId.getInt("id") + " - ") : ("")) + rsResearchersByProjectId.getString("email");
                 projects.add(researchersUniqueName);
             }
         } catch (SQLException e) {
@@ -1170,18 +1402,24 @@ public class DatabaseManager {
     }
 
     /**
-     *
+     * Retrieves a list of researchers associated with a specific project, excluding those assigned to a specific task.
+     *  
+     * @param projectId The ID of the project.
+     * @param taskId The ID of the task to exclude researchers from.
+     * @param formatWithIndex Define the return format, if true every string has the format "index - value", else "value".
+     * @return An array of researchers in the format "id - email", excluding those assigned to the specified task.
      */
-    public static String[] getResearchersExcludingProjectId(int projectId) {
+    public static String[] getResearchersByProjectIdAndExcludedByTaskId(int projectId, int taskId, boolean formatWithIndex) {
         ArrayList<String> projects = new ArrayList<>();
 
         try (Connection conn = getConnection();
-             PreparedStatement stmtResearchersExcludingProjectId = conn.prepareStatement(queryUsersResearchersExcludingProjectId)) {
-            stmtResearchersExcludingProjectId.setInt(1, projectId);
-            ResultSet rsResearchersExcludingProjectId = stmtResearchersExcludingProjectId.executeQuery();
+             PreparedStatement stmtResearchersByProjectId = conn.prepareStatement(queryUsersResearchersByProjectIdAndExcludedByTaskId)) {
+            stmtResearchersByProjectId.setInt(1, projectId);
+            stmtResearchersByProjectId.setInt(2, taskId);
+            ResultSet rsResearchersByProjectId = stmtResearchersByProjectId.executeQuery();
 
-            while (rsResearchersExcludingProjectId.next()) {
-                String researchersUniqueName = rsResearchersExcludingProjectId.getString("id") + " - " + rsResearchersExcludingProjectId.getString("email");
+            while (rsResearchersByProjectId.next()) {
+                String researchersUniqueName = ((formatWithIndex) ? (rsResearchersByProjectId.getInt("id") + " - ") : ("")) + rsResearchersByProjectId.getString("email");
                 projects.add(researchersUniqueName);
             }
         } catch (SQLException e) {
@@ -1191,6 +1429,42 @@ public class DatabaseManager {
         return projects.toArray(new String[0]);
     }
 
+    /**
+     * Retrieves a list of researchers excluding those associated with a specific project.
+     *
+     * @param projectId The ID of the project to exclude researchers from.
+     * @param formatWithIndex Define the return format, if true every string has the format "index - value", else "value".
+     * @return An array of researchers in the format "id - email", excluding those associated with the specified project.
+     */
+    public static String[] getResearchersExcludingProjectId(int projectId, boolean formatWithIndex) {
+        ArrayList<String> projects = new ArrayList<>();
+
+        try (Connection conn = getConnection();
+             PreparedStatement stmtResearchersExcludingProjectId = conn.prepareStatement(queryUsersResearchersExcludingProjectId)) {
+            stmtResearchersExcludingProjectId.setInt(1, projectId);
+            ResultSet rsResearchersExcludingProjectId = stmtResearchersExcludingProjectId.executeQuery();
+
+            while (rsResearchersExcludingProjectId.next()) {
+                String researchersUniqueName = ((formatWithIndex) ? (rsResearchersExcludingProjectId.getInt("id") + " - ") : ("")) + rsResearchersExcludingProjectId.getString("email");
+                projects.add(researchersUniqueName);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return projects.toArray(new String[0]);
+    }
+
+    /** 
+     * Adds a new work package to the database for a given project.
+     * 
+     * @param project_id The ID of the project to which the work package belongs.
+     * @param title The title of the work package.
+     * @param description The description of the work package.
+     * @param start_date The start date of the work package.
+     * @param end_date The end date of the work package.
+     * @return true if the work package was successfully added, false otherwise.
+     */
     public static boolean addWorkPackage(int project_id, String title, String description, LocalDate start_date, LocalDate end_date) {
         try (Connection conn = getConnection(); //(project_id, title, description, start_date, end_date)
              PreparedStatement stmtAddProject = conn.prepareStatement(insertWorkPackage)) {
@@ -1216,9 +1490,10 @@ public class DatabaseManager {
      * Retrieves a list of work packages associated with a specific project.
      *
      * @param projectId The ID of the project.
+     * @param formatWithIndex Define the return format, if true every string has the format "index - value", else "value".
      * @return A list of work package titles.
      */
-    public static List<String> getWorkPackagesByProject(int projectId) {
+    public static List<String> getWorkPackagesByProject(int projectId, boolean formatWithIndex) {
         List<String> workPackages = new ArrayList<>();
 
         try (Connection conn = getConnection();
@@ -1227,7 +1502,8 @@ public class DatabaseManager {
             ResultSet rsWorkPackagesByProject = stmtWorkPackagesByProject.executeQuery();
 
             while (rsWorkPackagesByProject.next()) {
-                workPackages.add(rsWorkPackagesByProject.getInt("id") + " - " + rsWorkPackagesByProject.getString("title"));
+                String workPackageUniqueName = ((formatWithIndex) ? (rsWorkPackagesByProject.getInt("id") + " - ") : ("")) + rsWorkPackagesByProject.getString("title");
+                workPackages.add(workPackageUniqueName);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -1239,9 +1515,10 @@ public class DatabaseManager {
      * Retrieves a list of tasks associated with a specific project.
      *
      * @param workPackagesId The ID of the project.
+     * @param formatWithIndex Define the return format, if true every string has the format "index - value", else "value".
      * @return A list of task titles.
      */
-    public static List<String> getTasksByWorkPackages(int workPackagesId) {
+    public static List<String> getTasksByWorkPackages(int workPackagesId, boolean formatWithIndex) {
         List<String> tasks = new ArrayList<>();
 
         try (Connection conn = getConnection();
@@ -1250,7 +1527,8 @@ public class DatabaseManager {
             ResultSet rsTasksByWorkPackages = stmtTasksByWorkPackages.executeQuery();
 
             while (rsTasksByWorkPackages.next()) {
-                tasks.add(rsTasksByWorkPackages.getInt("id") + " - " + rsTasksByWorkPackages.getString("title"));
+                String taskUniqueName = ((formatWithIndex) ? (rsTasksByWorkPackages.getInt("id") + " - ") : ("")) + rsTasksByWorkPackages.getString("title");
+                tasks.add(taskUniqueName);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -1269,11 +1547,11 @@ public class DatabaseManager {
      * @param deadline       The deadline for the task.
      * @param priority_id       The priority of the task (e.g., High, Medium, Low).
      * @param status_id         The status of the task (e.g., Not Started, In Progress, Completed).
-     * @return true if the task was successfully added, false otherwise.
+     * @return taskId if the task was successfully added, -1 otherwise.
      */
     public static int addTask(int work_package_id, String title, String description, int effortHours, int durationHours, LocalDate deadline, int priority_id, int status_id) {
         try (Connection conn = getConnection();
-             PreparedStatement stmtAddTask = conn.prepareStatement(insertTask)) {
+             PreparedStatement stmtAddTask = conn.prepareStatement(insertTask, Statement.RETURN_GENERATED_KEYS)) {
 
             stmtAddTask.setInt(1, work_package_id);
             stmtAddTask.setString(2, title);
@@ -1286,9 +1564,17 @@ public class DatabaseManager {
 
             //return task_id generated
             int affectedRows = stmtAddTask.executeUpdate();
-            ResultSet taskId = stmtAddTask.getGeneratedKeys();
-            taskId.next();
-            return taskId.getInt(1);
+            if (affectedRows == 0) {
+                throw new SQLException("Creating task failed, no rows affected.");
+            }
+
+            try (ResultSet rsGeneratedKeys = stmtAddTask.getGeneratedKeys()) {
+                if (rsGeneratedKeys.next()) {
+                    return rsGeneratedKeys.getInt(1);   // oppure rs.getInt("task_id") se preferisci il nome colonna
+                } else {
+                    throw new SQLException("Creating task failed, no ID obtained.");
+                }
+            }
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -1342,6 +1628,42 @@ public class DatabaseManager {
         return projectsArchived.toArray(new String[0]);
     }
 
+    /**
+     * Returns true if the project with the given id is archived.
+     *
+     * @param projectId the project id.
+     * @return true if archived, false otherwise.
+     */
+    public static boolean getIsProjectsArchivedById(int projectId) {
+        try (Connection conn = getConnection();
+             PreparedStatement stmtIsProjectsArchivedById = conn.prepareStatement(queryIsProjectsArchivedById)) {
+
+            stmtIsProjectsArchivedById.setInt(1, projectId);
+
+            ResultSet rsIsProjectsArchivedById = stmtIsProjectsArchivedById.executeQuery();
+
+            boolean isArchived = true;
+
+            while (rsIsProjectsArchivedById.next()) {
+                isArchived = rsIsProjectsArchivedById.getBoolean("archived");;
+            }
+
+            return isArchived;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Adds a milestone to a project.
+     *
+     * @param projectId the project id.
+     * @param title milestone title.
+     * @param description milestone description.
+     * @return true if added, false otherwise.
+     */
     public static boolean addMilestone(int projectId, String title, String description){
         try (Connection conn = getConnection();
              PreparedStatement stmtMilestone = conn.prepareStatement(insertMilestone)) {
@@ -1363,9 +1685,10 @@ public class DatabaseManager {
      * Retrieves a list of milestones associated with a specific project.
      *
      * @param projectId The ID of the project.
+     * @param formatWithIndex Define the return format, if true every string has the format "index - value", else "value".
      * @return A list of milestone titles with their IDs.
      */
-    public static List<String> getMilestonesByProject(int projectId) {
+    public static List<String> getMilestonesByProject(int projectId, boolean formatWithIndex) {
         List<String> milestones = new ArrayList<>();
 
         try (Connection conn = getConnection();
@@ -1374,7 +1697,8 @@ public class DatabaseManager {
             ResultSet rsMilestonesByProject = stmtMilestonesByProject.executeQuery();
 
             while (rsMilestonesByProject.next()) {
-                milestones.add(rsMilestonesByProject.getInt("id") + " - " + rsMilestonesByProject.getString("title"));
+                String milestoneUniqueName = ((formatWithIndex) ? (rsMilestonesByProject.getInt("id") + " - ") : ("")) + rsMilestonesByProject.getString("title");
+                milestones.add(milestoneUniqueName);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -1387,7 +1711,6 @@ public class DatabaseManager {
      *
      * @param milestoneId  The ID of the milestone to update.
      * @param taskId     The new title for the milestone.
-     *
      * @return 1 if is created, 0 if already exists and -1 in case of error
      */
     public static int addMilestoneAssignments(int milestoneId, int taskId) {
@@ -1410,9 +1733,10 @@ public class DatabaseManager {
      * Retrieves a list of work packages associated with a specific project.
      *
      * @param userId The ID of the project.
+     * @param formatWithIndex Define the return format, if true every string has the format "index - value", else "value".
      * @return A list of work package titles.
      */
-    public static List<String> getTasksByUser(int userId) {
+    public static List<String> getTasksByUser(int userId, boolean formatWithIndex) {
         List<String> workPackages = new ArrayList<>();
 
         try (Connection conn = getConnection();
@@ -1421,7 +1745,8 @@ public class DatabaseManager {
             ResultSet rsWorkPackagesByProject = stmtWorkPackagesByProject.executeQuery();
 
             while (rsWorkPackagesByProject.next()) {
-                workPackages.add(rsWorkPackagesByProject.getInt("id") + " - " + rsWorkPackagesByProject.getString("title"));
+                String workPackagesUniqueName = ((formatWithIndex) ? (rsWorkPackagesByProject.getInt("id") + " - ") : ("")) + rsWorkPackagesByProject.getString("title");
+                workPackages.add(workPackagesUniqueName);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -1429,14 +1754,18 @@ public class DatabaseManager {
         return workPackages;
     }
 
-    public static boolean editWorkPackage(int workpackages_id, LocalDate start_date, LocalDate end_date) {
-        try (Connection conn = getConnection(); //(project_id, title, description, start_date, end_date)
-             PreparedStatement stmtAddProject = conn.prepareStatement(queryUpdateWorkPackage)) {
-            stmtAddProject.setDate(1, Date.valueOf(start_date));
-            stmtAddProject.setDate(2, Date.valueOf(end_date));
-            stmtAddProject.setInt(3, workpackages_id);
+    /**
+     * Archives a project by id.
+     *
+     * @param project_id the project id.
+     * @return true if archived, false otherwise.
+     */
+    public static boolean archiveProject(int project_id) {
+        try (Connection conn = getConnection();
+             PreparedStatement stmtArchiveProject = conn.prepareStatement(queryUpdateProjectsInArchived)) {
+            stmtArchiveProject.setInt(1, project_id);
 
-            int affectedRows = stmtAddProject.executeUpdate();
+            int affectedRows = stmtArchiveProject.executeUpdate();
 
             if (affectedRows > 0) {
                 return true;
@@ -1448,6 +1777,39 @@ public class DatabaseManager {
         return false;
     }
 
+    /**
+     * Updates a work package's start and end date.
+     *
+     * @param workpackages_id the work package id.
+     * @param start_date new start date.
+     * @param end_date new end date.
+     * @return true if updated, false otherwise.
+     */
+    public static boolean editWorkPackage(int workpackages_id, LocalDate start_date, LocalDate end_date) {
+        try (Connection conn = getConnection(); //(project_id, title, description, start_date, end_date)
+             PreparedStatement stmtEditWorkPackage = conn.prepareStatement(queryUpdateWorkPackage)) {
+            stmtEditWorkPackage.setDate(1, Date.valueOf(start_date));
+            stmtEditWorkPackage.setDate(2, Date.valueOf(end_date));
+            stmtEditWorkPackage.setInt(3, workpackages_id);
+
+            int affectedRows = stmtEditWorkPackage.executeUpdate();
+
+            if (affectedRows > 0) {
+                return true;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return false;
+    }
+
+    /**
+     * Deletes a work package by id.
+     *
+     * @param workPackageId the work package id.
+     * @return true if deleted, false otherwise.
+     */
     public static boolean deleteWorkPackageById(int workPackageId) {
         try (Connection conn = getConnection();
              PreparedStatement stmtDeleteWorkPackageById = conn.prepareStatement(deleteWorkPackageById)) {
@@ -1460,6 +1822,12 @@ public class DatabaseManager {
         }
     }
 
+    /**
+     * Deletes a task by id.
+     *
+     * @param taskId the task id.
+     * @return true if deleted, false otherwise.
+     */
     public static boolean deleteTaskById(int taskId) {
         try (Connection conn = getConnection();
              PreparedStatement stmtDeleteWorkPackageById = conn.prepareStatement(deleteTaskById)) {
@@ -1475,6 +1843,7 @@ public class DatabaseManager {
     /**
      * Counts the number of active recover credentials requests.
      *
+     * @param task_id the task id.
      * @return the count of active recovery requests, or -1 if an error occurs.
      */
     public static int countTaskDependenciesByTaskId(int task_id) {
@@ -1496,6 +1865,7 @@ public class DatabaseManager {
     /**
      * Counts the number of active recover credentials requests.
      *
+     * @param task_id the task id.
      * @return the count of active recovery requests, or -1 if an error occurs.
      */
     public static int countMilestoneByTaskId(int task_id) {
@@ -1514,6 +1884,13 @@ public class DatabaseManager {
         }
     }
 
+    /**
+     * Checks if a deadline is valid for a work package.
+     *
+     * @param workPackageId the work package id.
+     * @param deadline the deadline to check.
+     * @return true if valid, false otherwise.
+     */
     public static boolean checkTaskDeadlineValidity(int workPackageId, LocalDate deadline) {
         try (Connection conn = getConnection();
              PreparedStatement stmtWorkPackageTimeRangeById = conn.prepareStatement(queryWorkPackageTimeRangeById)) {
@@ -1536,9 +1913,10 @@ public class DatabaseManager {
      * Retrieves a list of milestones associated with a specific project.
      *
      * @param projectId The ID of the project.
+     * @param formatWithIndex Define the return format, if true every string has the format "index - value", else "value".
      * @return A list of milestone titles with their IDs.
      */
-    public static List<String> getTasksByProject(int projectId) {
+    public static List<String> getTasksByProject(int projectId, boolean formatWithIndex) {
         List<String> tasks = new ArrayList<>();
 
         try (Connection conn = getConnection();
@@ -1547,7 +1925,8 @@ public class DatabaseManager {
             ResultSet rsTasksByProjectId = stmtTasksByProjectId.executeQuery();
 
             while (rsTasksByProjectId.next()) {
-                tasks.add(rsTasksByProjectId.getInt("id") + " - " + rsTasksByProjectId.getString("title"));
+                String taskUniqueName = ((formatWithIndex) ? (rsTasksByProjectId.getInt("id") + " - ") : ("")) + rsTasksByProjectId.getString("title");
+                tasks.add(taskUniqueName);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -1557,13 +1936,9 @@ public class DatabaseManager {
 
     /**
      * Retrieves a list of user assignment hours data for a given task.
-     * <p>
      * Each row from the database is mapped into a HashMap with:
-     * <ul>
-     *   <li>Key: a string in the format "id - email"</li>
-     *   <li>Value: a string in the format "effort_consumed - effort_hypothetic"</li>
-     * </ul>
-     * </p>
+     *   Key: a string in the format "id - email"
+     *   Value: a string in the format "effort_consumed - effort_hypothetic"
      *
      * @param taskId the ID of the task to filter the query
      * @return a list of HashMaps, each containing one entry with the user and assignment hours data
@@ -1607,6 +1982,14 @@ public class DatabaseManager {
         return results;
     }
 
+    /**
+     * Adds a new task assignment.
+     *
+     * @param taskId the task id.
+     * @param userId the user id.
+     * @param effortHypothetic the effort value.
+     * @return true if added, false otherwise.
+     */
     public static boolean addTaskAssignment(int taskId, int userId, int effortHypothetic) {
         try (Connection conn = getConnection();
              PreparedStatement stmtAddTaskAssignment = conn.prepareStatement(insertTaskAssignments)) {
@@ -1624,11 +2007,18 @@ public class DatabaseManager {
         }
     }
 
-    public static String getSingleTaskNameById(int taskId) {
+    /**
+     * Retrieves the task title by its ID.
+     *
+     * @param taskId the task ID.
+     * @param formatWithIndex Define the return format, if true every string has the format "index - value", else "value".
+     * @return the task title, formatted with index if specified.
+     */
+    public static String getTaskTitleNameById(int taskId, boolean formatWithIndex) {
         String results = "";
 
         try (Connection conn = getConnection();
-             PreparedStatement stmtSingleTaskNameById = conn.prepareStatement(querySingleTaskById)) {
+             PreparedStatement stmtSingleTaskNameById = conn.prepareStatement(queryTaskTitleById)) {
 
             // Set the taskId parameter for the SQL query
             stmtSingleTaskNameById.setInt(1, taskId);
@@ -1638,7 +2028,7 @@ public class DatabaseManager {
 
             rsSingleTaskNameById.next();
 
-            results = rsSingleTaskNameById.getInt("id") + " - " + rsSingleTaskNameById.getString("title");
+            results = ((formatWithIndex) ? taskId + " - " : "") + rsSingleTaskNameById.getString("title");
 
         } catch (SQLException e) {
             // Log the exception stack trace
@@ -1647,8 +2037,16 @@ public class DatabaseManager {
         return results;
     }
 
-    public static String getProjectTitleById(int projectId) {
+    /**
+     * Retrieves the project title by its ID.
+     *
+     * @param projectId the project ID.
+     * @param formatWithIndex Define the return format, if true every string has the format "index - value", else "value".
+     * @return the project title, formatted with index if specified.
+     */
+    public static String getProjectTitleById(int projectId, boolean formatWithIndex) {
         String results = "";
+        String projectUniqueName = "";
 
         try (Connection conn = getConnection();
              PreparedStatement stmtProjectTitleById = conn.prepareStatement(queryProjectTitleById)) {
@@ -1661,7 +2059,8 @@ public class DatabaseManager {
 
             rsProjectTitleById.next();
 
-            results = projectId + " - " + rsProjectTitleById.getString("title");
+            projectUniqueName = ((formatWithIndex) ? (projectId + " - ") : ("")) + rsProjectTitleById.getString("title");
+            results = projectUniqueName;
 
         } catch (SQLException e) {
             // Log the exception stack trace
@@ -1670,6 +2069,42 @@ public class DatabaseManager {
         return results;
     }
 
+    /**
+     * Retrieves the supervisor ID for a given project.
+     *
+     * @param projectId the project ID.
+     * @return the supervisor ID, or -1 if not found or an error occurs.
+     */
+    public static int getSupervisorIdByProject(int projectId) {
+        int result = -1;
+
+        try (Connection conn = getConnection();
+             PreparedStatement stmtSupervisorIdByProjectId = conn.prepareStatement(querySupervisorIdByProjectId)) {
+
+            // Set the taskId parameter for the SQL query
+            stmtSupervisorIdByProjectId.setInt(1, projectId);
+
+            // Execute the query and obtain the result set
+            ResultSet rsSupervisorIdByProjectId = stmtSupervisorIdByProjectId.executeQuery();
+
+            rsSupervisorIdByProjectId.next();
+
+            result = rsSupervisorIdByProjectId.getInt("supervisor_id");
+
+        } catch (SQLException e) {
+            // Log the exception stack trace
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+    /**
+     * Adds a researcher to a project.
+     *
+     * @param projectId the project id.
+     * @param userId the user id.
+     * @return true if added, false otherwise.
+     */
     public static boolean addReasearchersToProject(int projectId, int userId) {
         try (Connection conn = getConnection();
              PreparedStatement stmtAddReasearchersToProject = conn.prepareStatement(insertProjectsVisibility)) {
@@ -1684,5 +2119,460 @@ public class DatabaseManager {
             e.printStackTrace();
             return false;
         }
+    }
+
+    /**
+     * Removes a researcher from a project.
+     *
+     * @param projectId the project id.
+     * @param userId the user id.
+     * @return true if removed, false otherwise.
+     */
+    public static boolean removeResearcherFromProject(int projectId, int userId) {
+        try (Connection conn = getConnection();
+             PreparedStatement stmtRemoveReasearchersFromProject = conn.prepareStatement(queryDeleteProjectVisibility)) {
+            stmtRemoveReasearchersFromProject.setInt(1, projectId);
+            stmtRemoveReasearchersFromProject.setInt(2, userId);
+
+            int affectedRows = stmtRemoveReasearchersFromProject.executeUpdate();
+
+            return affectedRows > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Removes a researcher from task assignments.
+     *
+     * @param taskId the task id.
+     * @param userId the user id.
+     * @return true if removed, false otherwise.
+     */
+    public static boolean removeResearcherFromTaskAssignments(int taskId, int userId) {
+        try (Connection conn = getConnection();
+             PreparedStatement stmtRemoveReasearchersFromTaskAssignments = conn.prepareStatement(queryDeleteTaskAssignments)) {
+            stmtRemoveReasearchersFromTaskAssignments.setInt(1, taskId);
+            stmtRemoveReasearchersFromTaskAssignments.setInt(2, userId);
+
+            int affectedRows = stmtRemoveReasearchersFromTaskAssignments.executeUpdate();
+
+            return affectedRows > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+    /**
+     * Retrieves the project-/work-package-/task-titles and IDs for a given task.
+     *
+     * @param taskId the task’s ID
+     * @return a Map with keys:
+     *         "wpId", "wpTitle", "projectId", "projectTitle", "taskTitle"
+     */
+    public static Map<String, String> getProjectAndWorkPackageFromTaskId(int taskId) {
+        Map<String, String> returnProjectAndWorkPackageFromTaskId = new HashMap<>();
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(queryProjectAndWorkPackageFromTaskId)) {
+
+            ps.setInt(1, taskId);
+            try (ResultSet rsProjectAndWorkPackageFromTaskId = ps.executeQuery()) {
+                if (rsProjectAndWorkPackageFromTaskId.next()) {
+                    returnProjectAndWorkPackageFromTaskId.put("proj_id", String.valueOf(rsProjectAndWorkPackageFromTaskId.getInt("proj_id")));
+                    returnProjectAndWorkPackageFromTaskId.put("proj_title", rsProjectAndWorkPackageFromTaskId.getString("proj_title"));
+                    returnProjectAndWorkPackageFromTaskId.put("wp_id", String.valueOf(rsProjectAndWorkPackageFromTaskId.getInt("wp_id")));
+                    returnProjectAndWorkPackageFromTaskId.put("wp_title", rsProjectAndWorkPackageFromTaskId.getString("wp_title"));
+                    returnProjectAndWorkPackageFromTaskId.put("wp_sdate", String.valueOf(rsProjectAndWorkPackageFromTaskId.getDate("wp_sdate")));
+                    returnProjectAndWorkPackageFromTaskId.put("wp_edate", String.valueOf(rsProjectAndWorkPackageFromTaskId.getString("wp_edate")));
+                    returnProjectAndWorkPackageFromTaskId.put("t_title", rsProjectAndWorkPackageFromTaskId.getString("t_title"));
+                    returnProjectAndWorkPackageFromTaskId.put("t_deadline", String.valueOf(rsProjectAndWorkPackageFromTaskId.getString("t_deadline")));
+                    returnProjectAndWorkPackageFromTaskId.put("t_priorityId", String.valueOf(rsProjectAndWorkPackageFromTaskId.getInt("t_priorityId")));
+                    returnProjectAndWorkPackageFromTaskId.put("t_statusId", String.valueOf(rsProjectAndWorkPackageFromTaskId.getInt("t_statusId")));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return returnProjectAndWorkPackageFromTaskId;
+    }
+
+    /**
+     * Retrieves the project-/work-package-/task-titles and IDs for a given task.
+     *
+     * @param wpId the work-package’s ID
+     * @return a Map with keys:
+     *         "wpId", "wpTitle", "projectId", "projectTitle", "taskTitle"
+     */
+    public static Map<String, String> getWorkPackageFromId(int wpId) {
+        Map<String, String> returnProjectAndWorkPackageFromTaskId = new HashMap<>();
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(queryWorkPackageById)) {
+
+            ps.setInt(1, wpId);
+            try (ResultSet rsProjectAndWorkPackageFromTaskId = ps.executeQuery()) {
+                if (rsProjectAndWorkPackageFromTaskId.next()) {
+                    //start_date, end_date, title, project_id
+                    returnProjectAndWorkPackageFromTaskId.put("proj_id", String.valueOf(rsProjectAndWorkPackageFromTaskId.getInt("project_id")));
+                    returnProjectAndWorkPackageFromTaskId.put("wp_title", rsProjectAndWorkPackageFromTaskId.getString("title"));
+                    returnProjectAndWorkPackageFromTaskId.put("wp_sdate", String.valueOf(rsProjectAndWorkPackageFromTaskId.getDate("start_date")));
+                    returnProjectAndWorkPackageFromTaskId.put("wp_edate", String.valueOf(rsProjectAndWorkPackageFromTaskId.getString("end_date")));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return returnProjectAndWorkPackageFromTaskId;
+    }
+
+    /**
+     * Retrieves the contracted weekly working hours for a given user.
+     *
+     * @param userId the id of the user.
+     * @return the number of hours per week the user is contracted to work, or 0 if not found.
+     */
+    public static int getWorkingHoursWeekly(int userId) {
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(queryWorkingHoursWeeklyByUserId)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("working_hours_weekly");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    /**
+     * Retrieves the user id corresponding to the given email.
+     *
+     * @param email the email of the user.
+     * @return the user’s id, or -1 if not found.
+     */
+    public static int getUserIdByEmail(String email) {
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(queryUsersFromEmail)) {
+            ps.setString(1, email);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("id");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
+
+    /**
+     * Retrieves a complex structure HashMap<LocalDate, HashMap<Integer, HashMap<Integer, Double>>> with all the time_entries, divided by different layers: day (LocalDate) -> projectId (Integer) -> taskId (Integer) and hours (Double).
+     *
+     * @param userId the user's target id.
+     * @param startDay day that I want to start the search.
+     * @param endDay day that I want to end the search, it is an inclusive limit so if startDay == endDay then the search is only for that day.
+     * @return the user’s time_entries.
+     */
+    public static HashMap<LocalDate, HashMap<Integer, HashMap<Integer, Double>>> getUsersAndAssignmentsHoursByRangeDay(int userId, LocalDate startDay, LocalDate endDay) {
+
+        HashMap<LocalDate, HashMap<Integer, HashMap<Integer, Double>>> results = new HashMap<>();
+        //each element is a combination [LocalDate day (1) - (0..N) (Integer projectId)]
+        //      nested level: for each [Integer projectId (1) - (1..N) (Integer taskId)]
+        //          nested level: for each [Integer taskId (1) - (1) (Integer hours_worked)]
+
+        try (Connection conn = getConnection();
+             PreparedStatement stmtRetrieveTimeEntriesByUserAndWeek = conn.prepareStatement(queryRetrieveTimeEntriesByUserAndWeek)) {
+
+            stmtRetrieveTimeEntriesByUserAndWeek.setInt(1, userId);
+            stmtRetrieveTimeEntriesByUserAndWeek.setDate(2, Date.valueOf(startDay));
+            stmtRetrieveTimeEntriesByUserAndWeek.setDate(3, Date.valueOf(endDay));
+
+            // Execute the query and obtain the result set
+            ResultSet rsRetrieveTimeEntriesByUserAndWeek = stmtRetrieveTimeEntriesByUserAndWeek.executeQuery();
+
+            // loop each hours charged by user in the week
+            while (rsRetrieveTimeEntriesByUserAndWeek.next()) {
+                // Retrieve values from the result set
+                LocalDate tes_entry_date = rsRetrieveTimeEntriesByUserAndWeek.getDate("tes_entry_date").toLocalDate();
+                int t_project_id = rsRetrieveTimeEntriesByUserAndWeek.getInt("wp_project_id");
+                int tes_task_id = rsRetrieveTimeEntriesByUserAndWeek.getInt("tes_task_id");
+                double tes_hours = rsRetrieveTimeEntriesByUserAndWeek.getDouble("tes_hours");
+
+                // Create a new HashMap for the current row
+                Map<Integer, Double> map_taskId_and_Hours = new HashMap<>();
+                map_taskId_and_Hours.put(tes_task_id, tes_hours);
+
+                // Find the corresponding day map in results //t_project_id
+                results.computeIfAbsent(tes_entry_date, k -> new HashMap<>())
+                        .computeIfAbsent(t_project_id, k -> new HashMap<>())
+                        .putAll(map_taskId_and_Hours);
+            }
+        } catch (SQLException e) {
+            // Log the exception stack trace
+            e.printStackTrace();
+        }
+        return results;
+    }
+
+    /**
+     * Retrieves a structure HashMap<String, String> which each element is a combination [String taskId-taskTitle (1) - (1) String projectId-projectTitle]
+     *   with the task where the user can add hours for a specific day without any problem
+     *
+     * @param userId the user's target id.
+     * @param targetDay day that I want to look the hours added.
+     * @return the user’s available time_entries.
+     */
+    public static HashMap<String, String> getRetrieveTimeEntriesAvaibilityByUserAndDay(int userId, LocalDate targetDay, boolean formatWithIndex) {
+
+        //each element is a combination [String taskId-taskTitle (1) - (1) String projectId-projectTitle]
+        HashMap<String, String> results = new HashMap<>();
+
+        try (Connection conn = getConnection();
+             PreparedStatement stmtRetrieveTimeEntriesAvaibilityByUserAndDay = conn.prepareStatement(queryRetrieveTimeEntriesAvaibilityByUserAndDay)) {
+
+            stmtRetrieveTimeEntriesAvaibilityByUserAndDay.setInt(1, userId);
+            stmtRetrieveTimeEntriesAvaibilityByUserAndDay.setDate(2, Date.valueOf(targetDay));
+
+            // Execute the query and obtain the result set
+            ResultSet rsRetrieveTimeEntriesAvaibilityByUserAndDay = stmtRetrieveTimeEntriesAvaibilityByUserAndDay.executeQuery();
+
+            while (rsRetrieveTimeEntriesAvaibilityByUserAndDay.next()) {
+                // Retrieve values from the result set
+                int task_id = rsRetrieveTimeEntriesAvaibilityByUserAndDay.getInt("task_id");
+                String task_title = rsRetrieveTimeEntriesAvaibilityByUserAndDay.getString("task_title");
+                int projs_id = rsRetrieveTimeEntriesAvaibilityByUserAndDay.getInt("projs_id");
+                String projs_title = rsRetrieveTimeEntriesAvaibilityByUserAndDay.getString("projs_title");
+
+                results.put(
+                        ((formatWithIndex) ? (task_id + " - ") : "") + task_title,
+                        ((formatWithIndex) ? (projs_id + " - ") : "") + projs_title
+                );
+            }
+        } catch (SQLException e) {
+            // Log the exception stack trace
+            e.printStackTrace();
+        }
+        return results;
+    }
+
+    /**
+     * Retrieves the total effort consumed in task assignments for a specific user and task.
+     *
+     * @param userId the user's target id.
+     * @param taskId the task's target id.
+     * @return the total effort consumed in task assignments.
+     */
+    public static int getEffortConsumedInTaskAssignments(int userId, int taskId) {
+        int effortConsumed = 0;
+        try (Connection conn = getConnection();
+             PreparedStatement stmtEffortConsumedInTaskAssignments = conn.prepareStatement(queryEffortConsumedInTaskAssignments)) {
+
+            stmtEffortConsumedInTaskAssignments.setInt(1, userId);
+            stmtEffortConsumedInTaskAssignments.setInt(2, taskId);
+
+            // Execute the query and obtain the result set
+            ResultSet rsEffortConsumedInTaskAssignments = stmtEffortConsumedInTaskAssignments.executeQuery();
+
+            while (rsEffortConsumedInTaskAssignments.next()) {
+                // Retrieve values from the result set
+                effortConsumed = rsEffortConsumedInTaskAssignments.getInt("effort_consumed");
+            }
+        } catch (SQLException e) {
+            // Log the exception stack trace
+            e.printStackTrace();
+        }
+        return effortConsumed;
+    }
+
+    /**
+     * Removes a time entry and updates task assignment for a user and task on a specific day.
+     *
+     * @param userId the user id.
+     * @param taskId the task id.
+     * @param targetDay the date.
+     * @return true if removed, false otherwise.
+     */
+    public static boolean removeTimeEntryAndTaskAssignmentByUserIdAndTaskId(int userId, int taskId, LocalDate targetDay) {
+        try {
+
+            // 01. Ottengo quante ore devo andare a togliere dal task_assignments che non tiene traccia dei singoli giorni
+            int singleTimeEntryHours = getSingleTimeEntryHours(userId, taskId, targetDay);
+
+            // 02. Vado a togliere le ore dal task_assignments
+            boolean updateEffortConsumedInTaskAssignmentsStatus = updateEffortConsumedInTaskAssignments(userId, taskId, singleTimeEntryHours, -1);
+
+            if (updateEffortConsumedInTaskAssignmentsStatus) {
+
+                // 03. Rimuovo l'entry dal time_entries
+                boolean removeSingleTimeEntryHoursStatus = removeSingleTimeEntryHours(userId, taskId, targetDay);
+
+                return removeSingleTimeEntryHoursStatus;
+            }
+
+            return false;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Removes a single time entry for a user, task, and day.
+     *
+     * @param userId the user id.
+     * @param taskId the task id.
+     * @param targetDay the date.
+     * @return true if removed, false otherwise.
+     */
+    public static boolean removeSingleTimeEntryHours(int userId, int taskId, LocalDate targetDay) {
+        try (Connection conn = getConnection();
+             PreparedStatement stmtRemoveSingleTimeEntryHours = conn.prepareStatement(queryRemoveSingleTimeEntryHours)) {
+            stmtRemoveSingleTimeEntryHours.setInt(1, userId);
+            stmtRemoveSingleTimeEntryHours.setInt(2, taskId);
+            stmtRemoveSingleTimeEntryHours.setDate(3, Date.valueOf(targetDay));
+
+            int affectedRows = stmtRemoveSingleTimeEntryHours.executeUpdate();
+
+            return affectedRows > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Gets the hours for a single time entry.
+     *
+     * @param userId the user id.
+     * @param taskId the task id.
+     * @param targetDay the date.
+     * @return hours as int, or -1 if not found.
+     */
+    public static int getSingleTimeEntryHours(int userId, int taskId, LocalDate targetDay) {
+        int singleTimeEntryHours = 0;
+
+        try (Connection conn = getConnection();
+             PreparedStatement stmtSingleTimeEntryHours = conn.prepareStatement(querySingleTimeEntryHours)) {
+            stmtSingleTimeEntryHours.setInt(1, userId);
+            stmtSingleTimeEntryHours.setInt(2, taskId);
+            stmtSingleTimeEntryHours.setDate(3, Date.valueOf(targetDay));
+
+            // Execute the query and obtain the result set
+            ResultSet rsSingleTimeEntryHours = stmtSingleTimeEntryHours.executeQuery();
+
+            while (rsSingleTimeEntryHours.next()) {
+                // Retrieve values from the result set
+                singleTimeEntryHours = (int) rsSingleTimeEntryHours.getDouble("hours");
+            }
+
+            return singleTimeEntryHours;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return -1;
+        }
+    }
+
+    /**
+     * Updates the priority of a task.
+     *
+     * @param taskId the task id.
+     * @param priority_id the new priority id.
+     * @return true if updated, false otherwise.
+     */
+    public static boolean updatePriorityTask(int taskId, int priority_id) {
+        try (Connection conn = getConnection();
+             PreparedStatement stmtUpdatePriorityTask = conn.prepareStatement(queryUpdatePriorityTask)) {
+            stmtUpdatePriorityTask.setInt(1, priority_id);
+            stmtUpdatePriorityTask.setInt(2, taskId);
+
+            int affectedRows = stmtUpdatePriorityTask.executeUpdate();
+
+            return affectedRows > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Updates the status of a task.
+     *
+     * @param taskId the task id.
+     * @param status_id the new status id.
+     * @return true if updated, false otherwise.
+     */
+    public static boolean updateStatusTask(int taskId, int status_id) {
+        try (Connection conn = getConnection();
+             PreparedStatement stmtUpdateStatusTask = conn.prepareStatement(queryUpdateStatusTask)) {
+            stmtUpdateStatusTask.setInt(1, status_id);
+            stmtUpdateStatusTask.setInt(2, taskId);
+
+            int affectedRows = stmtUpdateStatusTask.executeUpdate();
+
+            return affectedRows > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Updates both status and priority of a task.
+     *
+     * @param taskId the task id.
+     * @param priority_id the new priority id.
+     * @param status_id the new status id.
+     * @return true if both updated, false otherwise.
+     */
+    public static boolean updateStatusAndPriority(int taskId, int priority_id, int status_id){
+        boolean updatePriorityTaskStatus = updatePriorityTask(taskId, priority_id);
+        boolean updateStatusTaskStatus = updateStatusTask(taskId, status_id);
+
+        return updatePriorityTaskStatus && updateStatusTaskStatus;
+    }
+
+    /**
+     * Gets a map of non-working tasks.
+     *
+     * @param formatWithIndex if true, format with index.
+     * @return map with task and project info.
+     */
+    public static HashMap<String, String> getNonWorkingTasks(boolean formatWithIndex) {
+
+        //each element is a combination [String taskId-taskTitle (1) - (1) String projectId-projectTitle]
+        HashMap<String, String> results = new HashMap<>();
+
+        try (Connection conn = getConnection();
+             PreparedStatement stmtNonWorkingTasks = conn.prepareStatement(queryNonWorkingTasks)) {
+
+            // Execute the query and obtain the result set
+            ResultSet rsNonWorkingTasks = stmtNonWorkingTasks.executeQuery();
+
+            while (rsNonWorkingTasks.next()) {
+                // Retrieve values from the result set
+                int task_id = rsNonWorkingTasks.getInt("task_id");
+                String task_title = rsNonWorkingTasks.getString("task_title");
+                int projs_id = rsNonWorkingTasks.getInt("projs_id");
+                String projs_title = rsNonWorkingTasks.getString("projs_title");
+
+                results.put(
+                        ((formatWithIndex) ? (task_id + " - ") : "") + task_title,
+                        ((formatWithIndex) ? (projs_id + " - ") : "") + projs_title
+                );
+            }
+        } catch (SQLException e) {
+            // Log the exception stack trace
+            e.printStackTrace();
+        }
+        return results;
     }
 }

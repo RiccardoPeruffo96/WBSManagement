@@ -1,5 +1,30 @@
 <section xmlns:th="http://www.thymeleaf.org" th:fragment="content" class="homepage-section">
     <h2>Save Report</h2>
-    <p>Welcome to the Time Tracking System.</p> <!-- hello world -->
-    <!-- form o tabella -->
+    <!-- Header with navigation and week controls -->
+    <div class="view-header">
+        <!-- Buttons to navigate previous/next week -->
+        <button class="action-button"
+                th:onclick="|window.location='@{/save-report/{prevFirstDayOfMonth}(prevFirstDayOfMonth=${prevFirstDayOfMonth})}'|">
+            Previous month
+        </button>
+        <h4>Target month: <span th:text="${actualFirstDayOfMonth}"></span> - <span th:text="${actualLastDayOfMonth}"></span></h4>
+        <button class="action-button"
+                th:onclick="|window.location='@{/save-report/{nextFirstDayOfMonth}(nextFirstDayOfMonth=${nextFirstDayOfMonth})}'|">
+            Next month
+        </button>
+    </div>
+
+    <!-- Display the download button -->
+    <div class="form-container" style="margin-top:2em;">
+        <form th:action="@{/save-report/{today}/print-report(today=${today})}"
+              method="post">
+            <!-- CSRF token, necessario se Spring Security è attivo -->
+            <input type="hidden"
+                   th:name="${_csrf.parameterName}"
+                   th:value="${_csrf.token}" />
+            <button type="submit" class="action-button">
+                Download report
+            </button>
+        </form>
+    </div>
 </section>
