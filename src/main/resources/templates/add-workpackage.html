@@ -1,0 +1,56 @@
+<!-- add-workpackage.html -->
+<section xmlns:th="http://www.thymeleaf.org"
+         th:fragment="content"
+         class="project-section">
+
+    <div class="view-header">
+        <button class="action-button"
+                th:onclick="|window.location='@{/project/{key}(key=${projectKey})}'|">
+            Return to project
+        </button>
+    </div>
+
+    <div class="form-container">
+        <h2>Add Work Package</h2>
+
+        <form th:action="@{/project/{key}/add-workpackage(key=${projectKey})}" method="post">
+            <label for="name">Name</label>
+            <input type="text"
+                   id="name"
+                   name="name"
+                   class="input-field"
+                   required />
+
+            <label for="description">Description</label>
+            <textarea id="description"
+                      name="description"
+                      class="input-field"
+                      rows="4"
+                      required></textarea>
+
+            <label for="startDate">Start Date</label>
+            <input type="date"
+                   id="startDate"
+                   name="startDate"
+                   class="input-field"
+                   required />
+
+            <label for="endDate">End Date</label>
+            <input type="date"
+                   id="endDate"
+                   name="endDate"
+                   class="input-field"
+                   required />
+
+            <div class="view-header">
+                <input type="submit"
+                       value="Add Work Package"
+                       class="action-button" />
+                <input type="button"
+                       value="Back"
+                       class="action-button"
+                       th:onclick="|window.location='@{/project/{key}(key=${projectKey})}'|"/>
+            </div>
+        </form>
+    </div>
+</section>

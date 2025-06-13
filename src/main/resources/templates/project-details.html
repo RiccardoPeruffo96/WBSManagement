@@ -1,0 +1,56 @@
+<!-- project-details.html -->
+<section xmlns:th="http://www.thymeleaf.org"
+         th:fragment="content"
+         class="project-section">
+
+    <!-- 1. Return button top-left -->
+    <div class="view-header">
+        <button class="action-button"
+                th:onclick="|window.location='@{/project}'|">
+            Return to projects
+        </button>
+    </div>
+
+    <!-- 2. Tab headers -->
+    <div class="tab-container">
+        <ul class="tab-list">
+            <li class="tab active" data-tab="work-tree">Work tree schema</li>
+            <li class="tab"       data-tab="tasks">Task assigned to me</li>
+            <li class="tab"       data-tab="gantt">Gantt diagram</li>
+        </ul>
+
+        <!-- 3. Tab content panes (all empty placeholders for now) -->
+        <div class="tab-content">
+            <div id="work-tree" class="tab-pane active">
+                <!-- Placeholder for Work tree schema -->
+            </div>
+            <div id="tasks" class="tab-pane">
+                <!-- Placeholder for Task assigned to me -->
+            </div>
+            <div id="gantt" class="tab-pane">
+                <!-- Placeholder for Gantt diagram -->
+            </div>
+        </div>
+    </div>
+
+</section>
+
+<!-- 4. Tab-switching script -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const tabs  = document.querySelectorAll('.tab-list .tab');
+        const panes = document.querySelectorAll('.tab-pane');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // deactivate all
+                tabs.forEach(t => t.classList.remove('active'));
+                panes.forEach(p => p.classList.remove('active'));
+
+                // activate clicked tab + matching pane
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab).classList.add('active');
+            });
+        });
+    });
+</script>

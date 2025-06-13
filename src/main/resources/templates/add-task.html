@@ -1,0 +1,62 @@
+<!-- add-task.html -->
+<section xmlns:th="http://www.thymeleaf.org"
+         th:fragment="content"
+         class="project-section">
+
+    <div class="view-header">
+        <button class="action-button"
+                th:onclick="|window.location='@{/project/{key}(key=${projectKey})}'|">
+            Return to project
+        </button>
+    </div>
+
+    <div class="form-container">
+        <h2>Add Task</h2>
+
+        <form th:action="@{/project/{key}/add-task(key=${projectKey})}" method="post">
+            <label for="workPackageId">Work Package Reference</label>
+            <select id="workPackageId"
+                    name="workPackageId"
+                    class="input-field"
+                    required>
+                <option value="" disabled selected>Select one…</option>
+                <option th:each="wp : ${workPackages}"
+                        th:value="${wp.id}"
+                        th:text="${wp.title}">
+                </option>
+            </select>
+
+            <label for="description">Description</label>
+            <textarea id="description"
+                      name="description"
+                      class="input-field"
+                      rows="4"
+                      required></textarea>
+
+            <label for="effort">Effort Hours Estimate</label>
+            <input type="number"
+                   id="effort"
+                   name="effort"
+                   class="input-field"
+                   min="0"
+                   required />
+
+            <label for="deadline">Deadline</label>
+            <input type="date"
+                   id="deadline"
+                   name="deadline"
+                   class="input-field"
+                   required />
+
+            <div class="view-header">
+                <input type="submit"
+                       value="Add Task"
+                       class="action-button" />
+                <input type="button"
+                       value="Back"
+                       class="action-button"
+                       th:onclick="|window.location='@{/project/{key}(key=${projectKey})}'|"/>
+            </div>
+        </form>
+    </div>
+</section>

@@ -1,0 +1,39 @@
+<section xmlns:th="http://www.thymeleaf.org"
+         xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+         th:fragment="content"
+         class="project-section">
+
+    <div class="view-header">
+        <!-- only admins see this button -->
+        <button class="action-button"
+                sec:authorize="hasRole('Administrator')"
+                th:onclick="|window.location='@{/project/add}'|">
+            Add project
+        </button>
+
+        <button class="action-button"
+                th:onclick="|window.location='@{/project/search}'|">
+            Search project
+        </button>
+
+        <button class="action-button"
+                th:onclick="|window.location='@{/project/archived}'|">
+            Archived project
+        </button>
+    </div>
+
+    <h2>Project assigned to you</h2>
+
+    <!-- Scrollable list container -->
+    <div class="project-list-container">
+        <ol>
+            <li th:each="proj : ${assignedProjects}">
+                <!-- each project as a full-width button -->
+                <button class="action-button project-link-button"
+                        th:onclick="|window.location='@{/project/{id}(id=${proj})}'|"
+                        th:text="${proj}">
+                </button>
+            </li>
+        </ol>
+    </div>
+</section>

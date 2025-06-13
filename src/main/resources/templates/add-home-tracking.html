@@ -1,0 +1,45 @@
+<section xmlns:th="http://www.thymeleaf.org" th:fragment="content" class="homepage-section">
+    <!-- Header with navigation and week controls -->
+    <div class="view-header">
+        <!-- Buttons to navigate previous/next week -->
+        <button class="action-button"
+                th:onclick="|window.location='@{/home-tracking/{targetDay}/tracking-details(targetDay=${targetDay})}'|">
+            Return to Home Tracking
+        </button>
+        <h4>Target day: <span th:text="${targetDay}"></span></h4>
+    </div>
+
+    <!-- Read-only table showing reported hours for each day -->
+    <div class="form-container">
+        <table>
+            <thead>
+            <tr>
+                <th>Project and Task</th>
+                <th>Hours</th>
+            </tr>
+            </thead>
+            <tbody>
+            <!-- Iterate each day entry in the week -->
+            <tr th:each="entry : ${hourCommission}">
+                <td th:text="${entry.key}"></td>
+                <td th:text="${entry.value}"></td>
+            </tr>
+            <!-- Row for weekly total -->
+            <tr>
+                <td>
+                    <button class="action-button"
+                            th:onclick="|window.location='@{/home-tracking/{targetDay}(targetDay=${targetDay})}'|">
+                    Add
+                    </button>
+                </td>
+                <td>
+                    <button class="action-button"
+                            th:onclick="|window.location='@{/home-tracking/{targetDay}(targetDay=${targetDay})}'|">
+                    Back
+                    </button>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</section>

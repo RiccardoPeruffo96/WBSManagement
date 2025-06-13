@@ -1,0 +1,31 @@
+<section xmlns:th="http://www.thymeleaf.org"
+         th:fragment="content"
+         class="homepage-section">
+
+    <div class="form-container">
+        <h2>Search Archived Project</h2>
+
+        <form th:action="@{/project/archived}" method="post">
+            <label for="projectId">Project</label>
+            <select id="projectId"
+                    name="projectId"
+                    class="input-field"
+                    required>
+                <option value="" disabled selected>Select one…</option>
+                <option th:each="proj : ${archivedProjects}"
+                        th:value="${proj}"
+                        th:text="${proj}">
+                </option>
+            </select>
+
+            <input type="submit"
+                   value="Search"
+                   class="form-button" />
+        </form>
+
+        <input type="button"
+               value="Back to Projects"
+               class="form-button"
+               th:onclick="|window.location='@{/project}'|" />
+    </div>
+</section>

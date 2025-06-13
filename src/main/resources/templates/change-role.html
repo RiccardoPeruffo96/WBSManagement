@@ -1,0 +1,42 @@
+<section xmlns:th="http://www.thymeleaf.org" th:fragment="content" class="homepage-section">
+    <div class="form-container">
+        <h2>Change User Role</h2>
+
+        <!-- Always show this security constraint message -->
+        <p class="security-message">
+            Due security constrain, auto change rule is not allowed
+        </p>
+
+        <form th:action="@{/admin/change-role}" method="post">
+            <label for="email">User Email</label>
+            <input type="email"
+                   id="email"
+                   name="email"
+                   class="input-field"
+                   placeholder="user@example.com"
+                   th:value="${email}"
+                   required />
+
+            <label for="role">New Role</label>
+            <select id="role" name="role" class="input-field" required>
+                <option th:each="r : ${roles}"
+                        th:value="${r}"
+                        th:text="${r}"
+                        th:selected="${r == selectedRole}"></option>
+            </select>
+
+            <input type="submit"
+                   value="Change Role"
+                   class="action-button" />
+        </form>
+
+        <button class="action-button"
+                th:onclick="|window.location='@{/homepage}'|">
+            Back to Homepage
+        </button>
+
+        <p th:if="${message}"
+           th:text="${message}"
+           class="message"></p>
+    </div>
+</section>

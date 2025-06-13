@@ -1,0 +1,29 @@
+<!-- new-user.html -->
+<section xmlns:th="http://www.thymeleaf.org" th:fragment="content" class="homepage-section">
+    <div class="form-container">
+        <h2>Create New User</h2>
+        <form th:action="@{/admin/new-user}" method="post">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" class="input-field" required />
+
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" class="input-field" required />
+
+            <label for="role">Role</label>
+            <select id="role" name="role" class="input-field" required>
+                <option th:each="r : ${roles}" th:value="${r}" th:text="${r}"></option>
+            </select>
+
+            <label for="weeklyHours">Weekly Hours</label>
+            <input type="number" id="weeklyHours" name="weeklyHours" class="input-field" min="0" required />
+
+            <input type="submit" value="Create User" class="action-button" />
+        </form>
+
+        <button class="action-button" th:onclick="|window.location='@{/homepage}'|">
+            Back to Homepage
+        </button>
+
+        <p th:if="${message}" th:text="${message}"></p>
+    </div>
+</section>

@@ -1,0 +1,17 @@
+<!-- manage-milestone.html -->
+<section xmlns:th="http://www.thymeleaf.org"
+         th:fragment="content"
+         class="project-section">
+
+    <div class="view-header">
+        <button class="action-button"
+                th:onclick="|window.location='@{/project/{key}(key=${projectKey})}'|">
+            Return to project
+        </button>
+    </div>
+
+    <div class="form-container">
+        <h2>Manage Milestone</h2>
+        <p>Placeholder: milestone‐management UI to be implemented here.</p>
+    </div>
+</section>

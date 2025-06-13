@@ -1,0 +1,17 @@
+<!-- manage-researcher.html -->
+<section xmlns:th="http://www.thymeleaf.org"
+         th:fragment="content"
+         class="project-section">
+
+    <div class="view-header">
+        <button class="action-button"
+                th:onclick="|window.location='@{/project/{key}(key=${projectKey})}'|">
+            Return to project
+        </button>
+    </div>
+
+    <div class="form-container">
+        <h2>Manage Researcher</h2>
+        <p>Placeholder: researcher‐management UI to be implemented here.</p>
+    </div>
+</section>

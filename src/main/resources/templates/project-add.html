@@ -1,0 +1,51 @@
+<section xmlns:th="http://www.thymeleaf.org"
+         th:fragment="content"
+         class="homepage-section">
+
+    <div class="form-container">
+        <h2>Add New Project</h2>
+
+        <form th:action="@{/project/add}" method="post">
+            <label for="name">Project Name</label>
+            <input type="text"
+                   id="name"
+                   name="name"
+                   class="input-field"
+                   required />
+
+            <label for="description">Description</label>
+            <textarea id="description"
+                      name="description"
+                      class="input-field"
+                      rows="4"
+                      required></textarea>
+
+            <label for="supervisorId">Supervisor</label>
+            <select id="supervisorId"
+                    name="supervisorId"
+                    class="input-field"
+                    required>
+                <option value="" disabled selected>Select one…</option>
+                <option th:each="sup : ${supervisors}"
+                        th:value="${sup.split(' - ')[0]}"
+                        th:text="${sup}">
+                </option>
+            </select>
+
+            <!-- primary action -->
+            <input type="submit"
+                   value="Add Project"
+                   class="action-button" />
+        </form>
+
+        <!-- back button outside form, same as profile.html -->
+        <input type="button"
+               value="Back to Projects"
+               class="action-button"
+               th:onclick="|window.location='@{/project}'|" />
+
+        <!-- optional feedback message -->
+        <p th:if="${message}"
+           th:text="${message}"></p>
+    </div>
+</section>

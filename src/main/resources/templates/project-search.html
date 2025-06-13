@@ -1,0 +1,43 @@
+<section xmlns:th="http://www.thymeleaf.org"
+         th:fragment="content"
+         class="homepage-section">
+
+    <div class="form-container">
+        <h2>Search Project</h2>
+
+        <form th:action="@{/project/search}" method="post">
+            <label for="projectId">Project</label>
+            <select id="projectId"
+                    name="projectId"
+                    class="input-field"
+                    required>
+                <option value="" disabled selected>Select one…</option>
+                <!--
+                  Each entry in ${projects} is a String like "9 - ProjectName".
+                  We split on " - " so the <option> value becomes the numeric ID
+                  and the visible text becomes the title.
+                -->
+                <option th:each="proj : ${projects}"
+                        th:value="${proj}"
+                        th:text="${proj}">
+                </option>
+            </select>
+
+            <!-- “Search” submits the form to POST /project/search -->
+            <input type="submit"
+                   value="Search"
+                   class="form-button" />
+        </form>
+
+        <!-- “Back to Projects” just navigates back to /project -->
+        <input type="button"
+               value="Back to Projects"
+               class="form-button"
+               th:onclick="|window.location='@{/project}'|" />
+
+        <!--
+          (Optional) You can show a message if you need feedback, e.g.:
+          <p th:if="${message}" th:text="${message}"></p>
+        -->
+    </div>
+</section>

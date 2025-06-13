@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>WBS Management</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body>
+<div class="sidebar">
+    <div class="nav-section">
+        <a th:href="@{/homepage}">Home</a>
+        <a th:href="@{/project}">Project</a>
+        <a th:href="@{/home-tracking}">Home Tracking</a>
+        <a th:href="@{/save-report}">Save Report</a>
+    </div>
+
+    <div class="submenu">
+        <details>
+            <summary>Options</summary>
+            <ul>
+                <li>
+                    <form th:action="@{/logout}" method="post">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                        <button type="submit" class="action-button">Logout</button>
+                    </form>
+                </li>
+                <li>
+                    <a th:href="@{/profile}">Profile</a>
+                </li>
+            </ul>
+        </details>
+        <!-- Section Admin Options -->
+        <details sec:authorize="hasRole('Administrator')">
+            <summary>Admin Options</summary>
+            <ul>
+                <li><a th:href="@{/admin/change-role}">Change Role</a></li>
+                <li><a th:href="@{/admin/new-user}">New User</a></li>
+                <li>
+                    <a th:href="@{/admin/recover-credentials}">
+                        Recover Credentials (<span th:text="${pendingCount}">0</span>)
+                    </a>
+                </li>
+            </ul>
+        </details>
+        <!-- End Section Admin Options -->
+    </div>
+</div>
+<div class="content" th:replace="${content} :: content"></div>
+</body>
+</html>
