@@ -1,5 +1,9 @@
 package it.univr.wbsmanagement.tests;
 
+import it.univr.wbsmanagement.pages.LoginPage;
+import it.univr.wbsmanagement.pages.ProjectPage;
+
+import org.junit.AfterClass;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.testng.annotations.*;
@@ -23,7 +27,7 @@ public class LoginTest {
 
     @Test
     public void testLoginAndOpenFirstProject() {
-        loginPage.loginAs("testuser","testpass");
+        loginPage.loginAs("admin","admin");
         projectPage = new ProjectPage(driver);
         projectPage.goToProject(0);
         // add assertion here

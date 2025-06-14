@@ -42,7 +42,7 @@ public class ProjectControllerTest {
 
     @Test
     void testShowAddProjectForm() throws Exception {
-        String[] supervisors = {"1 - sup1@example.com", "2 - sup2@example.com"};
+        String[] supervisors = {"1 - s@s.s", "2 - d@d.d"};
         dbMock.when(DatabaseManager::getSupervisors).thenReturn(supervisors);
 
         mockMvc.perform(get("/project/add"))
@@ -57,7 +57,7 @@ public class ProjectControllerTest {
         String name = "New Project";
         String description = "Desc";
         int supId = 2;
-        String email = "user@example.com";
+        String email = "s@s.s";
 
         // stub security principal
         Map<String, String> userRow = new HashMap<>();
