@@ -1,0 +1,739 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > ProjectController</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">it.univr.wbsmanagement.controllers</a>
+</div>
+
+<h1>Coverage Summary for Class: ProjectController (it.univr.wbsmanagement.controllers)</h1>
+
+<table class="coverageStats">
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Class, %
+</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Branch, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">ProjectController</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (1/1)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    90,5%
+  </span>
+  <span class="absValue">
+    (19/21)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    66,7%
+  </span>
+  <span class="absValue">
+    (16/24)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    88,4%
+  </span>
+  <span class="absValue">
+    (145/164)
+  </span>
+</td>
+</tr>
+
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package it.univr.wbsmanagement.controllers;
+&nbsp;
+&nbsp;import it.univr.wbsmanagement.database.DatabaseManager;
+&nbsp;
+&nbsp;import org.springframework.format.annotation.DateTimeFormat;
+&nbsp;import org.springframework.security.core.Authentication;
+&nbsp;import org.springframework.security.core.context.SecurityContextHolder;
+&nbsp;import org.springframework.stereotype.Controller;
+&nbsp;import org.springframework.ui.Model;
+&nbsp;import org.springframework.web.bind.annotation.GetMapping;
+&nbsp;import org.springframework.web.bind.annotation.PathVariable;
+&nbsp;import org.springframework.web.bind.annotation.PostMapping;
+&nbsp;import org.springframework.web.bind.annotation.RequestParam;
+&nbsp;
+&nbsp;import java.util.*;
+&nbsp;import java.time.LocalDate;
+&nbsp;
+&nbsp;/**
+&nbsp; * Controller for handling project-related requests.
+&nbsp; *
+&nbsp; * &lt;p&gt;This class provides endpoints for adding new projects,
+&nbsp; * searching existing projects, and viewing archived projects.&lt;/p&gt;
+&nbsp; */
+&nbsp;@Controller
+<b class="fc">&nbsp;public class ProjectController {</b>
+&nbsp;
+&nbsp;    /**
+&nbsp;     * Displays the “Add Project” form.
+&nbsp;     *
+&nbsp;     * &lt;p&gt;Retrieves a list of supervisors from the database,
+&nbsp;     * formats each as &quot;id - name&quot;, and makes it available
+&nbsp;     * for the dropdown.&lt;/p&gt;
+&nbsp;     *
+&nbsp;     * @param model the Spring Model for passing attributes to the view
+&nbsp;     * @return the Thymeleaf layout template
+&nbsp;     */
+&nbsp;    @GetMapping(&quot;/project/add&quot;)
+&nbsp;    public String showAddProjectForm(Model model) {
+&nbsp;
+&nbsp;        // fetch supervisors as an array of &quot;id - email&quot; strings
+<b class="fc">&nbsp;        String[] supervisorsArray = DatabaseManager.getSupervisors();  // returns String[] :contentReference[oaicite:0]{index=0}</b>
+&nbsp;
+&nbsp;        // convert to a List for Thymeleaf iteration
+<b class="fc">&nbsp;        List&lt;String&gt; supervisors = Arrays.asList(supervisorsArray);</b>
+&nbsp;
+<b class="fc">&nbsp;        model.addAttribute(&quot;supervisors&quot;, supervisors);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;content&quot;, &quot;project-add&quot;);</b>
+<b class="fc">&nbsp;        return &quot;layout&quot;;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;     /**
+&nbsp;     * Handles the submission of the “Add Project” form.
+&nbsp;     *
+&nbsp;     * &lt;p&gt;Extracts the project name, description, and supervisor ID from the request,
+&nbsp;     * retrieves the current admin’s user ID via Spring Security,
+&nbsp;     * and attempts to insert a new project into the database.
+&nbsp;     * On success, adds a message “Task added successfully” (in English);
+&nbsp;     * on failure, adds “Failed to add task”.&lt;/p&gt;
+&nbsp;     *
+&nbsp;     * @param name         the project title from the form
+&nbsp;     * @param description  the project description from the form
+&nbsp;     * @param supervisorId the selected supervisor’s user ID
+&nbsp;     * @param model        the Spring Model for passing attributes to the view
+&nbsp;     * @return the Thymeleaf layout template (same form, with a feedback message)
+&nbsp;     */
+&nbsp;    @PostMapping(&quot;/project/add&quot;)
+&nbsp;    public String handleAddProjectForm(
+&nbsp;            @RequestParam(&quot;name&quot;) String name,
+&nbsp;            @RequestParam(&quot;description&quot;) String description,
+&nbsp;            @RequestParam(&quot;supervisorId&quot;) int supervisorId,
+&nbsp;            Model model
+&nbsp;    ) {
+&nbsp;        // 1) Get current authenticated user’s email
+<b class="fc">&nbsp;        Authentication auth = SecurityContextHolder.getContext().getAuthentication();</b>
+<b class="fc">&nbsp;        String email = auth.getName();</b>
+&nbsp;
+&nbsp;        // 2) Look up full user row to get admin ID
+<b class="fc">&nbsp;        Map&lt;String, String&gt; row = DatabaseManager.getUserRowByEmail(email); //:contentReference[oaicite:1]{index=1}</b>
+&nbsp;
+<b class="fc">&nbsp;        String roleName = row.get(&quot;role_name&quot;);</b>
+<b class="fc">&nbsp;        int adminId = Integer.parseInt(row.get(&quot;role_id&quot;));</b>
+&nbsp;
+&nbsp;        // 3) Insert the project
+<b class="fc">&nbsp;        boolean added = DatabaseManager.addProject(name, description, adminId, supervisorId); //:contentReference[oaicite:2]{index=2}</b>
+&nbsp;
+&nbsp;        // 4) Prepare feedback message
+<b class="pc">&nbsp;        if (added) {</b>
+<b class="fc">&nbsp;            model.addAttribute(&quot;message&quot;, &quot;Task added successfully&quot;);</b>
+&nbsp;        } else {
+<b class="nc">&nbsp;            model.addAttribute(&quot;message&quot;, &quot;Failed to add task&quot;);</b>
+&nbsp;        }
+&nbsp;
+&nbsp;        // 5) Re-load supervisors list for the form
+<b class="fc">&nbsp;        String[] supervisorsArray = DatabaseManager.getSupervisors();</b>
+<b class="fc">&nbsp;        List&lt;String&gt; supervisors = Arrays.asList(supervisorsArray);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;supervisors&quot;, supervisors);</b>
+&nbsp;
+<b class="fc">&nbsp;        model.addAttribute(&quot;content&quot;, &quot;project-add&quot;);</b>
+<b class="fc">&nbsp;        return &quot;layout&quot;;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * Displays the “Search Project” form.
+&nbsp;     *
+&nbsp;     * &lt;p&gt;Fetches all active projects from the database (each as &quot;id - title&quot;),
+&nbsp;     * and puts them in the model under &quot;projects&quot; so the dropdown can populate.&lt;/p&gt;
+&nbsp;     *
+&nbsp;     * @param model the Spring Model for passing attributes to the view
+&nbsp;     * @return the Thymeleaf layout template
+&nbsp;     */
+&nbsp;    @GetMapping(&quot;/project/search&quot;)
+&nbsp;    public String showSearchProjectForm(Model model) {
+&nbsp;        // Load all active projects as an array of &quot;id - title&quot;
+<b class="fc">&nbsp;        String[] projectsArray = DatabaseManager.getProjectsActive(true);  // returns String[] of &quot;id - title&quot;</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;projects&quot;, projectsArray);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;content&quot;, &quot;project-search&quot;);</b>
+<b class="fc">&nbsp;        return &quot;layout&quot;;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * Handles the “Search Project” form submission.
+&nbsp;     *
+&nbsp;     * &lt;p&gt;Reads the selected projectId from the request, then redirects
+&nbsp;     * the user to /project/{id} so they see that project&#39;s detail page.&lt;/p&gt;
+&nbsp;     *
+&nbsp;     * @param projectId the numeric project ID chosen in the dropdown
+&nbsp;     * @return a redirect to /project/{projectId}
+&nbsp;     */
+&nbsp;    @PostMapping(&quot;/project/search&quot;)
+&nbsp;    public String handleSearchProject(@RequestParam(&quot;projectId&quot;) int projectId) {
+&nbsp;        // Redirect to the chosen project&#39;s detail page
+<b class="fc">&nbsp;        return &quot;redirect:/project/&quot; + projectId;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * Displays the “Search Archived Project” form.
+&nbsp;     *
+&nbsp;     * &lt;p&gt;Fetches all archived projects from the database (each as &quot;id - title&quot;),
+&nbsp;     * and puts them in the model under &quot;archivedProjects&quot; so the dropdown can populate.&lt;/p&gt;
+&nbsp;     *
+&nbsp;     * @param model the Spring Model for passing attributes to the view
+&nbsp;     * @return the Thymeleaf layout template
+&nbsp;     */
+&nbsp;    @GetMapping(&quot;/project/archived&quot;)
+&nbsp;    public String showArchivedProjectForm(Model model) {
+&nbsp;        // Load all archived projects as an array of &quot;id - title&quot;
+<b class="fc">&nbsp;        String[] archivedArray = DatabaseManager.getProjectsArchived(true);  // returns String[] of &quot;id - title&quot;</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;archivedProjects&quot;, archivedArray);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;content&quot;, &quot;project-archived&quot;);</b>
+<b class="fc">&nbsp;        return &quot;layout&quot;;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * Handles the “Search Archived Project” form submission.
+&nbsp;     *
+&nbsp;     * &lt;p&gt;Reads the selected projectId from the request, then redirects
+&nbsp;     * the user to /project/{id} so they see that archived project&#39;s detail page.&lt;/p&gt;
+&nbsp;     *
+&nbsp;     * @param projectId the numeric project ID chosen in the dropdown
+&nbsp;     * @return a redirect to /project/{projectId}
+&nbsp;     */
+&nbsp;    @PostMapping(&quot;/project/archived&quot;)
+&nbsp;    public String handleArchivedSearch(@RequestParam(&quot;projectId&quot;) int projectId) {
+&nbsp;        // Redirect to the chosen project&#39;s detail page
+<b class="fc">&nbsp;        return &quot;redirect:/project/&quot; + projectId;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * Shows the detail page for a given project key (ID or name). In particular,
+&nbsp;     * this method now loads all work packages for that project, and for each work package
+&nbsp;     * loads its tasks, assembling a nested list for Thymeleaf rendering.
+&nbsp;     *
+&nbsp;     * @param projectKey the project identifier (e.g. &quot;9&quot; or a unique project name)
+&nbsp;     * @param model      Spring Model to pass attributes to the Thymeleaf template
+&nbsp;     * @return the Thymeleaf layout template
+&nbsp;     */
+&nbsp;    @GetMapping(&quot;/project/{projectKey}&quot;)
+&nbsp;    public String showProjectDetails(
+&nbsp;            @PathVariable(&quot;projectKey&quot;) String projectKey,
+&nbsp;            Model model
+&nbsp;    ) {
+&nbsp;        // 1) Parse projectKey into an integer ID
+&nbsp;        int projectId;
+&nbsp;        try {
+<b class="fc">&nbsp;            projectId = Integer.parseInt(projectKey);</b>
+&nbsp;        } catch (NumberFormatException e) {
+&nbsp;            // If you ever allow non-numeric keys, you could look up the ID by name here.
+&nbsp;            // For now, assume projectKey is always numeric.
+<b class="nc">&nbsp;            return &quot;redirect:/project&quot;;</b>
+&nbsp;        }
+&nbsp;
+&nbsp;        // 2) Recupera l’utente corrente (id e ruolo) dal SecurityContext
+<b class="fc">&nbsp;        Authentication auth = SecurityContextHolder.getContext().getAuthentication();</b>
+<b class="fc">&nbsp;        String email = auth.getName();</b>
+&nbsp;
+<b class="fc">&nbsp;        Map&lt;String, String&gt; row = DatabaseManager.getUserRowByEmail(email);</b>
+&nbsp;
+<b class="fc">&nbsp;        String currentUserRole = row.get(&quot;role_name&quot;);</b>
+<b class="fc">&nbsp;        int currentUserId = Integer.parseInt(row.get(&quot;user_id&quot;));</b>
+&nbsp;
+&nbsp;        // 3) Verifica se l’utente corrente è il supervisore di questo progetto
+&nbsp;        //    (supponendo che tu abbia un metodo DB per ottenere l’id del supervisore del progetto)
+<b class="fc">&nbsp;        int supervisorId = DatabaseManager.getSupervisorIdByProject(projectId);</b>
+<b class="fc">&nbsp;        boolean isSupervisor = (currentUserId == supervisorId);</b>
+<b class="fc">&nbsp;        boolean isResearcher = currentUserRole.equalsIgnoreCase(&quot;RESEARCHER&quot;);</b>
+&nbsp;
+&nbsp;        // 4) Aggiungi i tre attributi al model
+<b class="fc">&nbsp;        model.addAttribute(&quot;role&quot;, currentUserRole);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;isSupervisor&quot;, isSupervisor);;</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;isResearcher&quot;, isResearcher);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;projectKey&quot;, projectKey);</b>
+&nbsp;
+&nbsp;        // 2) Retrieve the project title (optional display elsewhere):
+<b class="fc">&nbsp;        String projectTitle = DatabaseManager.getProjectTitleById(projectId, false);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;projectTitle&quot;, projectTitle);</b>
+&nbsp;
+&nbsp;        // 3) Load all work packages as List&lt;String&gt; of &quot;id - title&quot;
+<b class="fc">&nbsp;        List&lt;String&gt; wpStrings = DatabaseManager.getWorkPackagesByProject(projectId, true); //:contentReference[oaicite:2]{index=2}</b>
+&nbsp;
+&nbsp;        // 4) For each work package, load its tasks (List&lt;String&gt; of &quot;id - title&quot;)
+<b class="fc">&nbsp;        List&lt;Map&lt;String, Object&gt;&gt; workPackages = new ArrayList&lt;&gt;();</b>
+<b class="fc">&nbsp;        for (String wp : wpStrings) {</b>
+&nbsp;            // wp is like &quot;3 - Design phase&quot;
+<b class="fc">&nbsp;            String[] wpParts = wp.split(&quot; - &quot;, 2);</b>
+<b class="fc">&nbsp;            int wpId = Integer.parseInt(wpParts[0]);</b>
+<b class="fc">&nbsp;            String wpTitle = wpParts[1];</b>
+&nbsp;
+&nbsp;            // Fetch tasks for this work package
+<b class="fc">&nbsp;            List&lt;String&gt; tasks = DatabaseManager.getTasksByWorkPackages(wpId, true); //:contentReference[oaicite:3]{index=3}</b>
+&nbsp;
+&nbsp;            // Build a map: {&quot;id&quot;: 3, &quot;title&quot;: &quot;Design phase&quot;, &quot;tasks&quot;: List&lt;String&gt; }
+<b class="fc">&nbsp;            Map&lt;String, Object&gt; wpEntry = new HashMap&lt;&gt;();</b>
+<b class="fc">&nbsp;            wpEntry.put(&quot;id&quot;, wpId);</b>
+<b class="fc">&nbsp;            wpEntry.put(&quot;title&quot;, wpTitle);</b>
+<b class="fc">&nbsp;            wpEntry.put(&quot;tasks&quot;, tasks);</b>
+&nbsp;
+<b class="fc">&nbsp;            workPackages.add(wpEntry);</b>
+&nbsp;        }
+&nbsp;
+&nbsp;        // 5) Add the nested list to the model
+<b class="fc">&nbsp;        model.addAttribute(&quot;workPackages&quot;, workPackages);</b>
+&nbsp;
+&nbsp;        // 6) Project archived status
+<b class="fc">&nbsp;        String messageArchived = (DatabaseManager.getIsProjectsArchivedById(projectId)) ? &quot;Archived&quot; : &quot;Active&quot;;</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;message&quot;, messageArchived);</b>
+&nbsp;
+<b class="fc">&nbsp;        model.addAttribute(&quot;content&quot;, &quot;project-details&quot;);</b>
+&nbsp;
+<b class="fc">&nbsp;        return &quot;layout&quot;;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * Populates common attributes for project-related views.
+&nbsp;     * This method is used to avoid code duplication in multiple endpoints.
+&nbsp;     *
+&nbsp;     * @param projectKey the project identifier (ID or name)
+&nbsp;     * @param model      the Spring Model to add attributes to
+&nbsp;     */
+&nbsp;    private void populateCommonAttributes(String projectKey, Model model) {
+&nbsp;        // 1) current user
+<b class="fc">&nbsp;        Authentication auth = SecurityContextHolder.getContext().getAuthentication();</b>
+<b class="fc">&nbsp;        String email = auth.getName();</b>
+&nbsp;
+<b class="fc">&nbsp;        Map&lt;String, String&gt; userRow = DatabaseManager.getUserRowByEmail(email);</b>
+<b class="fc">&nbsp;        String currentUserRole = userRow.get(&quot;role_name&quot;);</b>
+<b class="fc">&nbsp;        int currentUserId = Integer.parseInt(userRow.get(&quot;user_id&quot;));</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;role&quot;, currentUserRole);</b>
+&nbsp;
+&nbsp;        // 2) isSupervisor?
+<b class="fc">&nbsp;        int projectId = Integer.parseInt(projectKey);</b>
+<b class="fc">&nbsp;        int supervisorId = DatabaseManager.getSupervisorIdByProject(projectId);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;isSupervisor&quot;, currentUserId == supervisorId);</b>
+&nbsp;
+&nbsp;        // 3) projectKey for URL building
+<b class="fc">&nbsp;        model.addAttribute(&quot;projectKey&quot;, projectKey);</b>
+&nbsp;
+&nbsp;        // 4) optional: project title
+<b class="fc">&nbsp;        String title = DatabaseManager.getProjectTitleById(projectId, true);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;projectTitle&quot;, title);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * GET: Show Manage Researchers page for a project.
+&nbsp;     * This page allows adding/removing researchers to/from project_visibility.
+&nbsp;     *
+&nbsp;     * @param projectKey the project identifier (ID or name)
+&nbsp;     * @param model      the Spring Model to add attributes to
+&nbsp;     * @return the Thymeleaf layout template for managing researchers
+&nbsp;     */
+&nbsp;    @GetMapping(&quot;/project/{projectKey}/manage-researchers&quot;)
+&nbsp;    public String showManageResearchers(@PathVariable String projectKey, Model model) {
+&nbsp;        // common attributes: role, isSupervisor, projectKey, etc.
+<b class="fc">&nbsp;        populateCommonAttributes(projectKey, model);</b>
+&nbsp;
+<b class="fc">&nbsp;        int projectId = Integer.parseInt(projectKey);</b>
+&nbsp;
+&nbsp;        // Researchers not yet in project_visibility
+<b class="fc">&nbsp;        String[] availArr = DatabaseManager.getResearchersExcludingProjectId(projectId, true);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;availableResearchers&quot;, Arrays.asList(availArr));</b>
+&nbsp;
+&nbsp;        // Researchers already in project_visibility
+<b class="fc">&nbsp;        String[] assignedArr = DatabaseManager.getResearchersByProjectId(projectId, true);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;projectResearchers&quot;, Arrays.asList(assignedArr));</b>
+&nbsp;
+<b class="fc">&nbsp;        model.addAttribute(&quot;content&quot;, &quot;manage-researcher&quot;);</b>
+<b class="fc">&nbsp;        return &quot;layout&quot;;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * Adds a researcher to project_visibility.
+&nbsp;     * Then reloads both lists and shows a feedback message.
+&nbsp;     *
+&nbsp;     * @param projectKey the project identifier (ID or name)
+&nbsp;     * @param researcherId the ID of the researcher to add
+&nbsp;     * @param model      the Spring Model to add attributes to
+&nbsp;     * @return the Thymeleaf layout template for managing researchers
+&nbsp;     */
+&nbsp;    @PostMapping(&quot;/project/{projectKey}/manage-researchers/add&quot;)
+&nbsp;    public String handleAddResearcher(
+&nbsp;            @PathVariable String projectKey,
+&nbsp;            @RequestParam(&quot;researcherId&quot;) int researcherId,
+&nbsp;            Model model
+&nbsp;    ) {
+<b class="nc">&nbsp;        populateCommonAttributes(projectKey, model);</b>
+<b class="nc">&nbsp;        int projectId = Integer.parseInt(projectKey);</b>
+&nbsp;
+<b class="nc">&nbsp;        boolean success = DatabaseManager.addReasearchersToProject(projectId, researcherId);</b>
+<b class="nc">&nbsp;        model.addAttribute(&quot;addMessage&quot;, success ? &quot;Researcher added successfully&quot; : &quot;Failed to add researcher&quot;);</b>
+&nbsp;
+&nbsp;        // refresh lists
+<b class="nc">&nbsp;        model.addAttribute(&quot;availableResearchers&quot;, Arrays.asList(DatabaseManager.getResearchersExcludingProjectId(projectId, true)));</b>
+<b class="nc">&nbsp;        model.addAttribute(&quot;projectResearchers&quot;, Arrays.asList(DatabaseManager.getResearchersByProjectId(projectId, true)));</b>
+&nbsp;
+<b class="nc">&nbsp;        model.addAttribute(&quot;content&quot;, &quot;manage-researcher&quot;);</b>
+<b class="nc">&nbsp;        return &quot;layout&quot;;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * Adds a researcher to project_visibility.
+&nbsp;     * Then reloads both lists and shows a feedback message.
+&nbsp;     *
+&nbsp;     * @param projectKey the project identifier (ID or name)
+&nbsp;     * @param researcherId the ID of the researcher to add
+&nbsp;     * @param model      the Spring Model to add attributes to
+&nbsp;     * @return the Thymeleaf layout template for managing researchers
+&nbsp;     */
+&nbsp;    @PostMapping(&quot;/project/{projectKey}/manage-researchers/remove&quot;)
+&nbsp;    public String handleRemoveResearcher(
+&nbsp;            @PathVariable String projectKey,
+&nbsp;            @RequestParam(&quot;researcherId&quot;) int researcherId,
+&nbsp;            Model model
+&nbsp;    ) {
+<b class="nc">&nbsp;        populateCommonAttributes(projectKey, model);</b>
+<b class="nc">&nbsp;        int projectId = Integer.parseInt(projectKey);</b>
+&nbsp;
+&nbsp;        // You may need to implement this in DatabaseManager similarly to addReasearchersToProject
+<b class="nc">&nbsp;        boolean success = DatabaseManager.removeResearcherFromProject(projectId, researcherId);</b>
+<b class="nc">&nbsp;        model.addAttribute(&quot;removeMessage&quot;, success ? &quot;Researcher removed successfully&quot; : &quot;Failed to remove researcher&quot;);</b>
+&nbsp;
+&nbsp;        // refresh lists
+<b class="nc">&nbsp;        model.addAttribute(&quot;availableResearchers&quot;, Arrays.asList(DatabaseManager.getResearchersExcludingProjectId(projectId, true)));</b>
+<b class="nc">&nbsp;        model.addAttribute(&quot;projectResearchers&quot;, Arrays.asList(DatabaseManager.getResearchersByProjectId(projectId, true)));</b>
+&nbsp;
+<b class="nc">&nbsp;        model.addAttribute(&quot;content&quot;, &quot;manage-researcher&quot;);</b>
+<b class="nc">&nbsp;        return &quot;layout&quot;;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * GET: Show Add Work Package form.
+&nbsp;     *
+&nbsp;     * &lt;p&gt;This method populates the model with common attributes
+&nbsp;     * and sets the content to &quot;add-workpackage&quot; for rendering.&lt;/p&gt;
+&nbsp;     *
+&nbsp;     * @param projectKey the project identifier (ID or name)
+&nbsp;     * @param model      the Spring Model to add attributes to
+&nbsp;     * @return the Thymeleaf layout template for adding a work package
+&nbsp;     */
+&nbsp;    @GetMapping(&quot;/project/{projectKey}/add-workpackage&quot;)
+&nbsp;    public String showAddWorkPackageForm(@PathVariable String projectKey, Model model) {
+<b class="fc">&nbsp;        populateCommonAttributes(projectKey, model);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;content&quot;, &quot;add-workpackage&quot;);</b>
+<b class="fc">&nbsp;        return &quot;layout&quot;;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * POST: Handle Add Work Package submission.
+&nbsp;     *
+&nbsp;     * &lt;p&gt;This method processes the form submission for adding a work package,
+&nbsp;     * validates the input, and attempts to insert it into the database.
+&nbsp;     * It then populates the model with a success or failure message.&lt;/p&gt;
+&nbsp;     *
+&nbsp;     * @param projectKey   the project identifier (ID or name)
+&nbsp;     * @param name         the name of the work package
+&nbsp;     * @param description  the description of the work package
+&nbsp;     * @param startDate    the start date of the work package
+&nbsp;     * @param endDate      the end date of the work package
+&nbsp;     * @param model        the Spring Model to add attributes to
+&nbsp;     * @return the Thymeleaf layout template with feedback message
+&nbsp;     */
+&nbsp;    @PostMapping(&quot;/project/{projectKey}/add-workpackage&quot;)
+&nbsp;    public String handleAddWorkPackage(
+&nbsp;            @PathVariable String projectKey,
+&nbsp;            @RequestParam String name,
+&nbsp;            @RequestParam String description,
+&nbsp;            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+&nbsp;            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+&nbsp;            Model model
+&nbsp;    ) {
+<b class="fc">&nbsp;        int projectId = Integer.parseInt(projectKey);</b>
+<b class="fc">&nbsp;        boolean success = DatabaseManager.addWorkPackage(</b>
+&nbsp;                projectId, name, description, startDate, endDate
+&nbsp;        );
+<b class="fc">&nbsp;        populateCommonAttributes(projectKey, model);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;content&quot;, &quot;add-workpackage&quot;);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;message&quot;,</b>
+<b class="pc">&nbsp;                success ? &quot;Work package added successfully&quot;</b>
+<b class="nc">&nbsp;                        : &quot;Failed to add work package&quot;);</b>
+<b class="fc">&nbsp;        return &quot;layout&quot;;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * GET: Show Add Task form for a specific project.
+&nbsp;     *
+&nbsp;     * &lt;p&gt;This method populates the model with common attributes,
+&nbsp;     * retrieves work packages for the dropdown, and sets the content
+&nbsp;     * to &quot;add-task&quot; for rendering.&lt;/p&gt;
+&nbsp;     *
+&nbsp;     * @param projectKey the project identifier (ID or name)
+&nbsp;     * @param model      the Spring Model to add attributes to
+&nbsp;     * @return the Thymeleaf layout template for adding a task
+&nbsp;     */
+&nbsp;    @GetMapping(&quot;/project/{projectKey}/add-task&quot;)
+&nbsp;    public String showAddTaskForm(@PathVariable String projectKey, Model model) {
+<b class="fc">&nbsp;        populateCommonAttributes(projectKey, model);</b>
+&nbsp;
+&nbsp;        // load work packages for dropdown
+<b class="fc">&nbsp;        int projectId = Integer.parseInt(projectKey);</b>
+<b class="fc">&nbsp;        List&lt;String&gt; wpStrings = DatabaseManager.getWorkPackagesByProject(projectId, true);</b>
+&nbsp;
+&nbsp;        // build id/title maps
+<b class="fc">&nbsp;        List&lt;Map&lt;String, Object&gt;&gt; workPackages = new ArrayList&lt;&gt;();</b>
+<b class="fc">&nbsp;        for (String wp : wpStrings) {</b>
+<b class="fc">&nbsp;            String[] parts = wp.split(&quot; - &quot;, 2);</b>
+<b class="fc">&nbsp;            Map&lt;String,Object&gt; m = new HashMap&lt;&gt;();</b>
+<b class="fc">&nbsp;            m.put(&quot;id&quot;, Integer.parseInt(parts[0]));</b>
+<b class="fc">&nbsp;            m.put(&quot;title&quot;, parts[1]);</b>
+&nbsp;            // add to the list
+<b class="fc">&nbsp;            workPackages.add(m);</b>
+&nbsp;        }
+&nbsp;
+<b class="fc">&nbsp;        String[] taskPriority = DatabaseManager.getAllPriority(true);</b>
+<b class="fc">&nbsp;        String[] taskStatus = DatabaseManager.getAllStatus(true);</b>
+&nbsp;
+<b class="fc">&nbsp;        model.addAttribute(&quot;workPackages&quot;, workPackages);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;taskPriority&quot;, taskPriority);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;taskStatus&quot;, taskStatus);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;content&quot;, &quot;add-task&quot;);</b>
+<b class="fc">&nbsp;        return &quot;layout&quot;;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * POST: Handle Add Task submission.
+&nbsp;     *
+&nbsp;     * &lt;p&gt;This method processes the form submission for adding a task,
+&nbsp;     * validates the deadline, and attempts to insert it into the database.
+&nbsp;     * It then populates the model with a success or failure message.&lt;/p&gt;
+&nbsp;     *
+&nbsp;     * @param projectKey       the project identifier (ID or name)
+&nbsp;     * @param workPackageId    the ID of the work package to which the task belongs
+&nbsp;     * @param title            the title of the task
+&nbsp;     * @param description      the description of the task
+&nbsp;     * @param effort           the effort estimate for the task
+&nbsp;     * @param deadline         the deadline for the task
+&nbsp;     * @param taskPriority     the priority of the task
+&nbsp;     * @param taskStatus       the status of the task
+&nbsp;     * @param model            the Spring Model to add attributes to
+&nbsp;     * @return the Thymeleaf layout template with feedback message
+&nbsp;     */
+&nbsp;    @PostMapping(&quot;/project/{projectKey}/add-task&quot;)
+&nbsp;    public String handleAddTask(
+&nbsp;            @PathVariable String projectKey,
+&nbsp;            @RequestParam int workPackageId,
+&nbsp;            @RequestParam String title,
+&nbsp;            @RequestParam String description,
+&nbsp;            @RequestParam int effort,
+&nbsp;            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate deadline,
+&nbsp;            @RequestParam int taskPriority,
+&nbsp;            @RequestParam int taskStatus,
+&nbsp;            Model model
+&nbsp;    ) {
+<b class="fc">&nbsp;        boolean taskDeadlineValidity = DatabaseManager.checkTaskDeadlineValidity(workPackageId, deadline);</b>
+&nbsp;
+<b class="fc">&nbsp;        if( !taskDeadlineValidity ) {</b>
+<b class="fc">&nbsp;            model.addAttribute(&quot;message&quot;, &quot;Invalid deadline for the task&quot;);</b>
+<b class="fc">&nbsp;            showAddTaskForm(projectKey, model);</b>
+<b class="fc">&nbsp;            return &quot;layout&quot;;</b>
+&nbsp;        }
+&nbsp;
+&nbsp;        // reload form data
+<b class="fc">&nbsp;        int taskId = DatabaseManager.addTask(workPackageId, title, description, effort, 0, deadline, taskPriority, taskStatus);</b>
+<b class="fc">&nbsp;        showAddTaskForm(projectKey, model);</b>
+<b class="pc">&nbsp;        model.addAttribute(&quot;message&quot;, taskId == -1 ? &quot;Failed to add task&quot; : &quot;Task added successfully&quot; );</b>
+<b class="fc">&nbsp;        return &quot;layout&quot;;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * GET: Show Manage Milestone placeholder.
+&nbsp;     *
+&nbsp;     * &lt;p&gt;This method populates the model with common attributes
+&nbsp;     * and sets the content to &quot;manage-milestone&quot; for rendering.&lt;/p&gt;
+&nbsp;     *
+&nbsp;     * @param projectKey the project identifier (ID or name)
+&nbsp;     * @param model      the Spring Model to add attributes to
+&nbsp;     * @return the Thymeleaf layout template for managing milestones
+&nbsp;     */ 
+&nbsp;    @GetMapping(&quot;/project/{projectKey}/manage-milestone&quot;)
+&nbsp;    public String showManageMilestone(@PathVariable String projectKey, Model model) {
+<b class="fc">&nbsp;        populateCommonAttributes(projectKey, model);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;content&quot;, &quot;manage-milestone&quot;);</b>
+<b class="fc">&nbsp;        return &quot;layout&quot;;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * POST: Handle Archive Project request.
+&nbsp;     *
+&nbsp;     * &lt;p&gt;This method attempts to archive the project with the given ID,
+&nbsp;     * and redirects back to the project list.&lt;/p&gt;
+&nbsp;     *
+&nbsp;     * @param projectKey the project identifier (ID or name)
+&nbsp;     * @return a redirect to the project list
+&nbsp;     */
+&nbsp;    @GetMapping(&quot;/project/{projectKey}/archive&quot;)
+&nbsp;    public String handleArchiveProject(@PathVariable String projectKey) {
+<b class="fc">&nbsp;        boolean archive = DatabaseManager.archiveProject(Integer.parseInt(projectKey));</b>
+<b class="fc">&nbsp;        return &quot;redirect:/project&quot;;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * GET: Show the Work Package Details page, with current dates.
+&nbsp;     *
+&nbsp;     * @param projectKey       project ID as path variable
+&nbsp;     * @param workPackageId    work package ID as path variable
+&nbsp;     * @param model            Spring MVC model
+&nbsp;     * @return layout with content=&quot;workpackage-details&quot;
+&nbsp;     */
+&nbsp;    @GetMapping(&quot;/project/{projectKey}/workpackage/{workPackageId}&quot;)
+&nbsp;    public String showWorkPackageDetails(
+&nbsp;            @PathVariable String projectKey,
+&nbsp;            @PathVariable int workPackageId,
+&nbsp;            Model model
+&nbsp;    ) {
+&nbsp;        // common attributes (role, isSupervisor, projectKey, projectTitle, etc.)
+<b class="fc">&nbsp;        populateCommonAttributes(projectKey, model);</b>
+&nbsp;
+&nbsp;        // 1) Load WP details
+<b class="fc">&nbsp;        Map&lt;String, String&gt; wpMeta = DatabaseManager.getWorkPackageFromId(workPackageId);</b>
+<b class="fc">&nbsp;        String wpTitle   = wpMeta.get(&quot;wp_title&quot;);</b>
+<b class="fc">&nbsp;        String startDate = wpMeta.get(&quot;wp_sdate&quot;);</b>
+<b class="fc">&nbsp;        String endDate   = wpMeta.get(&quot;wp_edate&quot;);</b>
+&nbsp;
+<b class="fc">&nbsp;        model.addAttribute(&quot;workPackageId&quot;, workPackageId);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;workPackageTitle&quot;, wpTitle);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;startDate&quot;, startDate);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;endDate&quot;, endDate);</b>
+&nbsp;
+&nbsp;        // 2) Render fragment
+<b class="fc">&nbsp;        model.addAttribute(&quot;content&quot;, &quot;workpackage-details&quot;);</b>
+<b class="fc">&nbsp;        return &quot;layout&quot;;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * POST: Update the start/end dates of a work package.
+&nbsp;     *
+&nbsp;     * @param projectKey       project ID as path variable
+&nbsp;     * @param workPackageId    work package ID as path variable
+&nbsp;     * @param startDate        new start date from form
+&nbsp;     * @param endDate          new end date from form
+&nbsp;     * @param model            Spring MVC model
+&nbsp;     * @return forwards back to the same details page with a message
+&nbsp;     */
+&nbsp;    @PostMapping(&quot;/project/{projectKey}/workpackage/{workPackageId}/update-dates&quot;)
+&nbsp;    public String handleUpdateWorkPackageDates(
+&nbsp;            @PathVariable String projectKey,
+&nbsp;            @PathVariable int workPackageId,
+&nbsp;            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+&nbsp;            LocalDate startDate,
+&nbsp;            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+&nbsp;            LocalDate endDate,
+&nbsp;            Model model
+&nbsp;    ) {
+&nbsp;        // common attributes
+<b class="fc">&nbsp;        populateCommonAttributes(projectKey, model);</b>
+&nbsp;
+<b class="fc">&nbsp;        boolean ok = DatabaseManager.editWorkPackage(workPackageId, startDate, endDate);</b>
+<b class="pc">&nbsp;        model.addAttribute(&quot;updateMessage&quot;, ok ? &quot;Dates updated successfully&quot; : &quot;Failed to update dates&quot;);</b>
+&nbsp;
+&nbsp;        // re‐load the WP details so the form shows the new values
+<b class="fc">&nbsp;        Map&lt;String, String&gt; wpMeta = DatabaseManager.getWorkPackageFromId(workPackageId);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;workPackageId&quot;, workPackageId);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;workPackageTitle&quot;, wpMeta.get(&quot;wp_title&quot;));</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;startDate&quot;, wpMeta.get(&quot;wp_sdate&quot;));</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;endDate&quot;, wpMeta.get(&quot;wp_edate&quot;));</b>
+&nbsp;
+<b class="fc">&nbsp;        model.addAttribute(&quot;content&quot;, &quot;workpackage-details&quot;);</b>
+<b class="fc">&nbsp;        return &quot;layout&quot;;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * POST: Delete the given work package and redirect back to the project.
+&nbsp;     *
+&nbsp;     * @param projectKey       project ID as path variable
+&nbsp;     * @param workPackageId    work package ID to delete
+&nbsp;     * @return redirect to /project/{projectKey}
+&nbsp;     */
+&nbsp;    @PostMapping(&quot;/project/{projectKey}/workpackage/{workPackageId}/delete&quot;)
+&nbsp;    public String handleDeleteWorkPackage(
+&nbsp;            @PathVariable String projectKey,
+&nbsp;            @PathVariable int workPackageId
+&nbsp;    ) {
+<b class="fc">&nbsp;        DatabaseManager.deleteWorkPackageById(workPackageId);</b>
+<b class="fc">&nbsp;        return &quot;redirect:/project/&quot; + projectKey;</b>
+&nbsp;    }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2025-06-15 13:56</div>
+</div>
+</body>
+</html>

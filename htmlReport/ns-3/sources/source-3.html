@@ -1,0 +1,287 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > HomeTrackingController</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">it.univr.wbsmanagement.controllers</a>
+</div>
+
+<h1>Coverage Summary for Class: HomeTrackingController (it.univr.wbsmanagement.controllers)</h1>
+
+<table class="coverageStats">
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Class, %
+</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Branch, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">HomeTrackingController</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (1/1)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (4/4)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    80%
+  </span>
+  <span class="absValue">
+    (16/20)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    95,3%
+  </span>
+  <span class="absValue">
+    (41/43)
+  </span>
+</td>
+</tr>
+
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package it.univr.wbsmanagement.controllers;
+&nbsp;
+&nbsp;import it.univr.wbsmanagement.database.DatabaseManager;
+&nbsp;import it.univr.wbsmanagement.models.User;
+&nbsp;
+&nbsp;import org.springframework.format.annotation.DateTimeFormat.ISO;
+&nbsp;import org.springframework.format.annotation.DateTimeFormat;
+&nbsp;import org.springframework.security.core.Authentication;
+&nbsp;import org.springframework.security.core.context.SecurityContextHolder;
+&nbsp;import org.springframework.stereotype.Controller;
+&nbsp;import org.springframework.ui.Model;
+&nbsp;import org.springframework.web.bind.annotation.*;
+&nbsp;import org.springframework.web.bind.annotation.GetMapping;
+&nbsp;import org.springframework.web.bind.annotation.PathVariable;
+&nbsp;import org.springframework.web.bind.annotation.PostMapping;
+&nbsp;import org.springframework.web.bind.annotation.RequestParam;
+&nbsp;
+&nbsp;import java.time.DayOfWeek;
+&nbsp;import java.time.LocalDate;
+&nbsp;import java.time.temporal.TemporalAdjusters;
+&nbsp;import java.util.*;
+&nbsp;
+&nbsp;/**
+&nbsp; * Controller for the weekly “house tracking” view:
+&nbsp; * shows a read‐only table of hours per day (Mon–Sun),
+&nbsp; * il totale della settimana e le ore contrattuali,
+&nbsp; * più il form per inserire nuove ore.
+&nbsp; */
+&nbsp;@Controller
+<b class="fc">&nbsp;public class HomeTrackingController {</b>
+&nbsp;
+&nbsp;    /**
+&nbsp;     * Display the hours charged by the user for a specific day.
+&nbsp;     *
+&nbsp;     * @param model Thymeleaf model.
+&nbsp;     * @return the main layout view with content set to &quot;home-tracking&quot;.
+&nbsp;     */
+&nbsp;    @GetMapping(&quot;/home-tracking/{targetDay}/add-home-tracking&quot;)
+&nbsp;    public String showTrackingAddPage(
+&nbsp;            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate targetDay,
+&nbsp;            Model model
+&nbsp;    ) {
+&nbsp;        // 1) Current user &amp; ID
+<b class="fc">&nbsp;        User currentUser = DatabaseManager.getUser();</b>
+<b class="fc">&nbsp;        int userId = currentUser.getUserId();</b>
+&nbsp;
+&nbsp;        // 2) Fetch hours per day (map LocalDate-&gt;Double)
+<b class="fc">&nbsp;        HashMap&lt;LocalDate, HashMap&lt;Integer, HashMap&lt;Integer, Double&gt;&gt;&gt; userDay = DatabaseManager.getUsersAndAssignmentsHoursByRangeDay(userId, targetDay, targetDay);</b>
+&nbsp;
+&nbsp;        // 3) Totale ore caricate giornaliere
+<b class="fc">&nbsp;        if(userDay.containsKey(targetDay)) {</b>
+&nbsp;
+<b class="fc">&nbsp;            HashMap&lt;Integer, HashMap&lt;Integer, Double&gt;&gt; dayHours = userDay.get(targetDay);</b>
+&nbsp;
+<b class="fc">&nbsp;            HashMap&lt;String, Double&gt; hoursMap = new HashMap&lt;&gt;();</b>
+<b class="fc">&nbsp;            HashMap&lt;Integer, String&gt; projectTrack = new HashMap&lt;&gt;();</b>
+&nbsp;
+<b class="fc">&nbsp;            for (Map.Entry&lt;Integer, HashMap&lt;Integer, Double&gt;&gt; hoursByProjectId : dayHours.entrySet()) {</b>
+&nbsp;
+&nbsp;                // Retrieve project ID
+<b class="fc">&nbsp;                int projectId = hoursByProjectId.getKey();</b>
+&nbsp;
+<b class="fc">&nbsp;                for (Map.Entry&lt;Integer, Double&gt; hourEntry : hoursByProjectId.getValue().entrySet()) {</b>
+&nbsp;                    // Retrieve task ID and hours
+<b class="fc">&nbsp;                    int taskId = hourEntry.getKey();</b>
+<b class="fc">&nbsp;                    double hours = hourEntry.getValue();</b>
+&nbsp;
+&nbsp;                    // Process or display the hours as needed
+<b class="fc">&nbsp;                    projectTrack.computeIfAbsent(projectId, k -&gt; DatabaseManager.getProjectTitleById(projectId, true));</b>
+<b class="fc">&nbsp;                    String taskName = DatabaseManager.getTaskTitleNameById(taskId, true);</b>
+&nbsp;
+<b class="fc">&nbsp;                    hoursMap.put(&quot;Project: &quot; + projectTrack.get(projectId) + &quot;; Task: &quot; + taskName, hours);</b>
+&nbsp;                }
+&nbsp;            }
+<b class="fc">&nbsp;            model.addAttribute(&quot;hourCommission&quot;, hoursMap);</b>
+&nbsp;        }
+&nbsp;
+&nbsp;        // 4) Add list of tasks available for the user
+<b class="fc">&nbsp;        HashMap&lt;String, String&gt; tasks_available = DatabaseManager.getRetrieveTimeEntriesAvaibilityByUserAndDay(userId, targetDay, true);</b>
+<b class="fc">&nbsp;        HashMap&lt;String, String&gt; tasks_not_working = DatabaseManager.getNonWorkingTasks(true);</b>
+<b class="fc">&nbsp;        for (Map.Entry&lt;String, String&gt; entry : tasks_not_working.entrySet()) {</b>
+&nbsp;            // Add the task to the available tasks with a note that it is not working
+<b class="fc">&nbsp;            tasks_available.put(entry.getKey(), entry.getValue());</b>
+&nbsp;        }
+&nbsp;
+<b class="fc">&nbsp;        model.addAttribute(&quot;targetDay&quot;, targetDay);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;tasks_available&quot;, tasks_available);</b>
+&nbsp;
+<b class="fc">&nbsp;        model.addAttribute(&quot;content&quot;, &quot;add-home-tracking&quot;);</b>
+&nbsp;
+<b class="fc">&nbsp;        return &quot;layout&quot;;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * Handles adding a time entry for a specific task on a specific day.
+&nbsp;     * &lt;p&gt;
+&nbsp;     * It checks if the hours are valid, inserts the time entry, and updates the task assignments.
+&nbsp;     * If the insertion fails, it rolls back the operation.
+&nbsp;     *
+&nbsp;     * @param targetDay The day for which the time entry is being added.
+&nbsp;     * @param taskId    The ID of the task for which hours are being added.
+&nbsp;     * @param hours     The number of hours to be added.
+&nbsp;     * @param model     The model to add attributes to the view.
+&nbsp;     * @return The view name to reload the tracking add page with updated information.
+&nbsp;     */
+&nbsp;    @PostMapping(&quot;/home-tracking/{targetDay}/add-home-tracking&quot;)
+&nbsp;    public String handleAddAssignment(
+&nbsp;            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate targetDay,
+&nbsp;            @RequestParam int taskId,
+&nbsp;            @RequestParam double hours,
+&nbsp;            Model model
+&nbsp;    ) {
+&nbsp;        // 1) Current user &amp; ID
+<b class="fc">&nbsp;        User currentUser = DatabaseManager.getUser();</b>
+<b class="fc">&nbsp;        int userId = currentUser.getUserId();</b>
+&nbsp;
+<b class="pc">&nbsp;        if ((int) hours &lt;= 0) {</b>
+<b class="nc">&nbsp;            model.addAttribute(&quot;addTimeEntryMessage&quot;, &quot;Please enter a valid number of hours&quot;);</b>
+&nbsp;            // reload everything
+<b class="nc">&nbsp;            return showTrackingAddPage(targetDay, model);</b>
+&nbsp;        }
+&nbsp;
+<b class="fc">&nbsp;        boolean time_insert_insert_status = DatabaseManager.insertTimeEntry(userId, taskId, targetDay, hours);</b>
+<b class="fc">&nbsp;        boolean task_assignments_insert_status = DatabaseManager.updateEffortConsumedInTaskAssignments(userId, taskId, (int) hours, 1);</b>
+&nbsp;
+<b class="pc">&nbsp;        if (time_insert_insert_status &amp;&amp; task_assignments_insert_status) {</b>
+<b class="fc">&nbsp;            model.addAttribute(&quot;addTimeEntryMessage&quot;, &quot;Hours entry added successfully&quot;);</b>
+&nbsp;        }
+&nbsp;        else {
+<b class="fc">&nbsp;            model.addAttribute(&quot;addTimeEntryMessage&quot;, &quot;Failed to add hour entry&quot;);</b>
+&nbsp;
+&nbsp;            // Rollback operation if insertion failed
+<b class="pc">&nbsp;            if(!(time_insert_insert_status &amp;&amp; task_assignments_insert_status)) {</b>
+&nbsp;
+<b class="fc">&nbsp;                DatabaseManager.removeTimeEntryAndTaskAssignmentByUserIdAndTaskId(userId, taskId, targetDay);</b>
+&nbsp;
+&nbsp;            }
+&nbsp;        }
+&nbsp;
+&nbsp;        // reload everything
+<b class="fc">&nbsp;        return showTrackingAddPage(targetDay, model);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * Handles the removal of a time entry and its associated task assignment.
+&nbsp;     * &lt;p&gt;
+&nbsp;     * It removes the time entry and task assignment for the specified user and task ID on the target day.
+&nbsp;     *
+&nbsp;     * @param targetDay The day for which the time entry is being removed.
+&nbsp;     * @param taskId    The ID of the task to be removed.
+&nbsp;     * @param model     The model to add attributes to the view.
+&nbsp;     * @return The view name to reload the tracking add page with updated information.
+&nbsp;     */
+&nbsp;    @PostMapping(&quot;/home-tracking/{targetDay}/add-home-tracking/remove/{taskId}&quot;)
+&nbsp;    public String handleRemoveAssignment(
+&nbsp;            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate targetDay,
+&nbsp;            @PathVariable int taskId,
+&nbsp;            Model model
+&nbsp;    ) {
+&nbsp;        // 1) Current user &amp; ID
+<b class="fc">&nbsp;        User currentUser = DatabaseManager.getUser();</b>
+<b class="fc">&nbsp;        int userId = currentUser.getUserId();</b>
+&nbsp;
+&nbsp;        // 2) Remove time entry and task assignment
+<b class="fc">&nbsp;        boolean remove_TimeEntry_and_TaskAssignment_status = DatabaseManager.removeTimeEntryAndTaskAssignmentByUserIdAndTaskId(userId, taskId, targetDay);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;removeTimeEntryMessage&quot;, remove_TimeEntry_and_TaskAssignment_status ? &quot;Entity removed successfully&quot; : &quot;Failed to remove entity&quot;);</b>
+&nbsp;
+&nbsp;        // reload everything
+<b class="fc">&nbsp;        return showTrackingAddPage(targetDay, model);</b>
+&nbsp;    }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2025-06-15 13:56</div>
+</div>
+</body>
+</html>

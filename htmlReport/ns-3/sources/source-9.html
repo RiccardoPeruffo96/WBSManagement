@@ -1,0 +1,286 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > TaskController</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">it.univr.wbsmanagement.controllers</a>
+</div>
+
+<h1>Coverage Summary for Class: TaskController (it.univr.wbsmanagement.controllers)</h1>
+
+<table class="coverageStats">
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Class, %
+</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Branch, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">TaskController</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (1/1)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (6/6)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    70%
+  </span>
+  <span class="absValue">
+    (7/10)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    95,7%
+  </span>
+  <span class="absValue">
+    (66/69)
+  </span>
+</td>
+</tr>
+
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package it.univr.wbsmanagement.controllers;
+&nbsp;
+&nbsp;import it.univr.wbsmanagement.database.DatabaseManager;
+&nbsp;import org.springframework.stereotype.Controller;
+&nbsp;import org.springframework.ui.Model;
+&nbsp;import org.springframework.web.bind.annotation.*;
+&nbsp;
+&nbsp;import java.util.*;
+&nbsp;
+&nbsp;@Controller
+<b class="fc">&nbsp;public class TaskController {</b>
+&nbsp;
+&nbsp;    /**
+&nbsp;     * Shows the Task Details page, including:
+&nbsp;     * - project/work package/task names
+&nbsp;     * - dropdowns for adding/removing researchers
+&nbsp;     * - current assignments table
+&nbsp;     */
+&nbsp;    @GetMapping(&quot;/task/{taskId}&quot;)
+&nbsp;    public String showTaskDetails(@PathVariable int taskId, Model model) {
+&nbsp;        // 1. Retrieve task related project And work package data
+<b class="fc">&nbsp;        Map&lt;String, String&gt; metadata = DatabaseManager.getProjectAndWorkPackageFromTaskId(taskId);</b>
+<b class="fc">&nbsp;        String taskTitle = metadata.get(&quot;t_title&quot;);</b>
+<b class="fc">&nbsp;        int workPackageId = Integer.parseInt(metadata.get(&quot;wp_id&quot;));</b>
+<b class="fc">&nbsp;        String workPackageTitle = metadata.get(&quot;wp_title&quot;);</b>
+<b class="fc">&nbsp;        int projectId = Integer.parseInt(metadata.get(&quot;proj_id&quot;));</b>
+<b class="fc">&nbsp;        String projectTitle = metadata.get(&quot;proj_title&quot;);</b>
+&nbsp;
+<b class="fc">&nbsp;        String wpStartDate = metadata.get(&quot;wp_sdate&quot;);</b>
+<b class="fc">&nbsp;        String wpEndDate = metadata.get(&quot;wp_edate&quot;);</b>
+<b class="fc">&nbsp;        String tDeadline = metadata.get(&quot;t_deadline&quot;);</b>
+<b class="fc">&nbsp;        String tPriorityId = metadata.get(&quot;t_priorityId&quot;);</b>
+<b class="fc">&nbsp;        String tStatusId = metadata.get(&quot;t_statusId&quot;);</b>
+&nbsp;
+<b class="fc">&nbsp;        model.addAttribute(&quot;taskId&quot;, taskId);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;taskTitle&quot;, taskTitle);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;workPackageId&quot;, workPackageId);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;workPackageTitle&quot;, workPackageTitle);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;projectId&quot;, projectId);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;projectTitle&quot;, projectTitle);</b>
+&nbsp;
+<b class="fc">&nbsp;        String priority_name = DatabaseManager.getPriorityById(Integer.parseInt(tPriorityId), true);</b>
+<b class="fc">&nbsp;        String status_name = DatabaseManager.getStatusById(Integer.parseInt(tStatusId), true);</b>
+&nbsp;
+<b class="fc">&nbsp;        model.addAttribute(&quot;wpStartDate&quot;, wpStartDate);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;wpEndDate&quot;, wpEndDate);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;tDeadline&quot;, tDeadline.substring(0, 10)); // format YYYY-MM-DD</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;priority_name&quot;, priority_name);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;status_name&quot;, status_name);</b>
+&nbsp;
+&nbsp;        // 2. Researchers available to assign (from project_visibility)
+<b class="fc">&nbsp;        String[] avail = DatabaseManager.getResearchersByProjectIdAndExcludedByTaskId(projectId, taskId, true);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;availableResearchers&quot;, Arrays.asList(avail));</b>
+&nbsp;
+&nbsp;        // 3. Use a single call to getUsersAndAssignmentsHoursByTasks:
+&nbsp;        //    drives both the remove-dropdown and the assignments table
+<b class="fc">&nbsp;        List&lt;HashMap&lt;String,String&gt;&gt; raw = DatabaseManager.getUsersAndAssignmentsHoursByTasks(taskId);</b>
+&nbsp;
+<b class="fc">&nbsp;        List&lt;Map&lt;String,Object&gt;&gt; assignments = new ArrayList&lt;&gt;();</b>
+<b class="fc">&nbsp;        List&lt;String&gt; assignedResearchers = new ArrayList&lt;&gt;();</b>
+&nbsp;
+<b class="fc">&nbsp;        for (HashMap&lt;String,String&gt; row : raw) {</b>
+&nbsp;            // each map has one entry: key=&quot;id - email&quot;, value=&quot;consumed - hypothetic&quot;
+<b class="fc">&nbsp;            for (Map.Entry&lt;String,String&gt; e : row.entrySet()) {</b>
+<b class="fc">&nbsp;                String userKey   = e.getKey();   // e.g. &quot;7 - alice@example.com&quot;</b>
+<b class="fc">&nbsp;                String hoursVal  = e.getValue(); // e.g. &quot;5 - 8&quot;</b>
+&nbsp;
+<b class="fc">&nbsp;                String[] userParts  = userKey.split(&quot; - &quot;, 2);</b>
+<b class="fc">&nbsp;                String[] effortParts= hoursVal.split(&quot; - &quot;, 2);</b>
+&nbsp;
+&nbsp;                // build table row
+<b class="fc">&nbsp;                Map&lt;String,Object&gt; entry = new HashMap&lt;&gt;();</b>
+<b class="fc">&nbsp;                entry.put(&quot;userName&quot;, userParts[1]);</b>
+<b class="fc">&nbsp;                entry.put(&quot;effortConsumed&quot;, Integer.parseInt(effortParts[0]));</b>
+<b class="fc">&nbsp;                entry.put(&quot;effortHypothetic&quot;, Integer.parseInt(effortParts[1]));</b>
+<b class="fc">&nbsp;                assignments.add(entry);</b>
+&nbsp;
+&nbsp;                // deposit for the &quot;remove&quot; dropdown
+<b class="fc">&nbsp;                assignedResearchers.add(userKey);</b>
+&nbsp;            }
+&nbsp;        }
+&nbsp;
+<b class="fc">&nbsp;        model.addAttribute(&quot;assignments&quot;, assignments);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;assignedResearchers&quot;, assignedResearchers);</b>
+&nbsp;
+<b class="fc">&nbsp;        String[] allPriority = DatabaseManager.getAllPriority(true);</b>
+<b class="fc">&nbsp;        String[] allStatus = DatabaseManager.getAllStatus(true);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;allPriority&quot;, allPriority);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;allStatus&quot;, allStatus);</b>
+&nbsp;
+&nbsp;        // 4. Render task-details fragment
+<b class="fc">&nbsp;        model.addAttribute(&quot;content&quot;, &quot;task-details&quot;);</b>
+<b class="fc">&nbsp;        return &quot;layout&quot;;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;
+&nbsp;    /**
+&nbsp;     * Handles adding a researcher to the task_assignments table.
+&nbsp;     */
+&nbsp;    @PostMapping(&quot;/task/{taskId}/assignments/add&quot;)
+&nbsp;    public String handleAddAssignment(
+&nbsp;            @PathVariable int taskId,
+&nbsp;            @RequestParam int userId,
+&nbsp;            @RequestParam int effortHypothetic,
+&nbsp;            Model model
+&nbsp;    ) {
+<b class="fc">&nbsp;        boolean ok = DatabaseManager.addTaskAssignment(taskId, userId, effortHypothetic);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;addAssignmentMessage&quot;,</b>
+<b class="pc">&nbsp;                ok ? &quot;Assignment added successfully&quot;</b>
+<b class="nc">&nbsp;                        : &quot;Failed to add assignment&quot;);</b>
+&nbsp;        // reload everything
+<b class="fc">&nbsp;        return showTaskDetails(taskId, model);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * Handles removing a researcher from the task_assignments table.
+&nbsp;     */
+&nbsp;    @PostMapping(&quot;/task/{taskId}/assignments/remove&quot;)
+&nbsp;    public String handleRemoveAssignment(
+&nbsp;            @PathVariable int taskId,
+&nbsp;            @RequestParam int userId,
+&nbsp;            Model model
+&nbsp;    ) {
+<b class="fc">&nbsp;        boolean ok = DatabaseManager.removeResearcherFromTaskAssignments(taskId, userId);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;removeAssignmentMessage&quot;,</b>
+<b class="pc">&nbsp;                ok ? &quot;Assignment removed successfully&quot;</b>
+<b class="nc">&nbsp;                        : &quot;Failed to remove assignment&quot;);</b>
+&nbsp;        // reload everything
+<b class="fc">&nbsp;        return showTaskDetails(taskId, model);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * Deletes the given task and redirects back to its parent project page.
+&nbsp;     *
+&nbsp;     * @param taskId the ID of the task to delete
+&nbsp;     * @return a redirect to /project/{projectId}
+&nbsp;     */
+&nbsp;    @GetMapping(&quot;/task/{taskId}/delete&quot;)
+&nbsp;    public String deleteTask(@PathVariable int taskId) {
+&nbsp;
+<b class="fc">&nbsp;        Map&lt;String, String&gt; metadata = DatabaseManager.getProjectAndWorkPackageFromTaskId(taskId);</b>
+<b class="fc">&nbsp;        int projectId = Integer.parseInt(metadata.get(&quot;proj_id&quot;));</b>
+&nbsp;
+<b class="fc">&nbsp;        DatabaseManager.deleteTaskById(taskId);</b>
+&nbsp;
+<b class="fc">&nbsp;        return &quot;redirect:/project/&quot; + projectId;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * Deletes the given task and redirects back to its parent project page.
+&nbsp;     *
+&nbsp;     * @param taskId the ID of the task to delete
+&nbsp;     * @return a redirect to /project/{projectId}
+&nbsp;     */
+&nbsp;    @PostMapping(&quot;/task/{taskId}/assignments/updateStatusAndPriority&quot;)
+&nbsp;    public String updateStatusAndPriority(@PathVariable int taskId,
+&nbsp;                                          @RequestParam int priorityId,
+&nbsp;                                          @RequestParam int statusId,
+&nbsp;                                          Model model) {
+&nbsp;        // Update the task&#39;s status and priority
+<b class="fc">&nbsp;        boolean ok = DatabaseManager.updateStatusAndPriority(taskId, priorityId, statusId);</b>
+&nbsp;
+<b class="fc">&nbsp;        model.addAttribute(&quot;updateStatusAndPriority&quot;,</b>
+<b class="pc">&nbsp;                ok ? &quot;Status and priority updated successfully&quot;</b>
+<b class="nc">&nbsp;                        : &quot;Failed to update status and priority&quot;);</b>
+&nbsp;
+&nbsp;        // reload everything
+<b class="fc">&nbsp;        return showTaskDetails(taskId, model);</b>
+&nbsp;    }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2025-06-15 13:56</div>
+</div>
+</body>
+</html>

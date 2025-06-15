@@ -1,0 +1,325 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > HomepageController</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">it.univr.wbsmanagement.controllers</a>
+</div>
+
+<h1>Coverage Summary for Class: HomepageController (it.univr.wbsmanagement.controllers)</h1>
+
+<table class="coverageStats">
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Class, %
+</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Branch, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">HomepageController</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (1/1)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (5/5)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (6/6)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (69/69)
+  </span>
+</td>
+</tr>
+
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package it.univr.wbsmanagement.controllers;
+&nbsp;import it.univr.wbsmanagement.database.DatabaseManager;
+&nbsp;import it.univr.wbsmanagement.models.User;
+&nbsp;
+&nbsp;import org.springframework.format.annotation.DateTimeFormat;
+&nbsp;import org.springframework.security.core.Authentication;
+&nbsp;import org.springframework.security.core.context.SecurityContextHolder;
+&nbsp;import org.springframework.stereotype.Controller;
+&nbsp;import org.springframework.ui.Model;
+&nbsp;import org.springframework.web.bind.annotation.GetMapping;
+&nbsp;import org.springframework.web.bind.annotation.PathVariable;
+&nbsp;
+&nbsp;import java.time.DayOfWeek;
+&nbsp;import java.time.LocalDate;
+&nbsp;import java.time.temporal.TemporalAdjusters;
+&nbsp;import java.util.Map;
+&nbsp;import java.util.ArrayList;
+&nbsp;import java.util.HashMap;
+&nbsp;import java.util.List;
+&nbsp;
+&nbsp;/**
+&nbsp; * HomepageController handles requests for the homepage view.
+&nbsp; * When users are redirected here after login, they will see the homepage template.
+&nbsp; */
+&nbsp;@Controller
+<b class="fc">&nbsp;public class HomepageController {</b>
+&nbsp;
+&nbsp;    /**
+&nbsp;     * Displays the list of projects assigned to the authenticated user.
+&nbsp;     *
+&nbsp;     * &lt;p&gt;Before rendering, this method:
+&nbsp;     * &lt;ul&gt;
+&nbsp;     *   &lt;li&gt;Retrieves the current user&#39;s email from Spring Security.&lt;/li&gt;
+&nbsp;     *   &lt;li&gt;Loads the user&#39;s full record (including id and role) from the database.&lt;/li&gt;
+&nbsp;     *   &lt;li&gt;Calls DatabaseManager.getAssignedProjects(userId) to fetch only those projects.&lt;/li&gt;
+&nbsp;     * &lt;/ul&gt;
+&nbsp;     * The view fragment &quot;project&quot; will then render the header buttons, a static
+&nbsp;     * message, and the list of project titles.&lt;/p&gt;
+&nbsp;     *
+&nbsp;     * @param model the Spring Model for passing attributes to the view
+&nbsp;     * @return the Thymeleaf layout template
+&nbsp;     */
+&nbsp;    @GetMapping(&quot;/project&quot;)
+&nbsp;    public String showProject(Model model) {
+&nbsp;
+&nbsp;        // 1) Get current authentication and email
+<b class="fc">&nbsp;        Authentication auth = SecurityContextHolder.getContext().getAuthentication();</b>
+<b class="fc">&nbsp;        String email = auth.getName();</b>
+&nbsp;
+&nbsp;        // 2) Load full user row and set as current user getUserIdByEmail
+<b class="fc">&nbsp;        Map&lt;String,String&gt; row = DatabaseManager.getUserRowByEmail(email);</b>
+&nbsp;
+<b class="fc">&nbsp;        String roleName = row.get(&quot;role_name&quot;);</b>
+<b class="fc">&nbsp;        int userId = Integer.parseInt(row.get(&quot;user_id&quot;));</b>
+&nbsp;
+<b class="fc">&nbsp;        User currentUser = new User(userId, email, roleName);</b>
+<b class="fc">&nbsp;        DatabaseManager.setUser(currentUser);</b>
+&nbsp;
+&nbsp;        // 3) Fetch the projects assigned to this user
+&nbsp;        //SELECT u.email, u.password, u.id as user_id, r.role_name, r.id as role_id
+<b class="fc">&nbsp;        String[] assignedProjects = DatabaseManager.getAssignedProjects(userId, true);</b>
+&nbsp;
+<b class="fc">&nbsp;        model.addAttribute(&quot;assignedProjects&quot;, assignedProjects);</b>
+&nbsp;
+&nbsp;        // Make role available to the template
+<b class="fc">&nbsp;        model.addAttribute(&quot;role&quot;, roleName);</b>
+&nbsp;
+<b class="fc">&nbsp;        model.addAttribute(&quot;content&quot;, &quot;project&quot;);</b>
+<b class="fc">&nbsp;        return &quot;layout&quot;;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * Loads the home tracking fragment inside the layout.
+&nbsp;     *
+&nbsp;     * @param model the Spring model to inject attributes into the view.
+&nbsp;     * @return the Thymeleaf layout page.
+&nbsp;     */
+&nbsp;    @GetMapping(&quot;/home-tracking/{date}&quot;)
+&nbsp;    public String showHomeTracking(@PathVariable(&quot;date&quot;) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date, Model model) {
+&nbsp;
+<b class="fc">&nbsp;        LocalDate today = date;</b>
+&nbsp;
+&nbsp;        // 1) Determine week range: Monday -&gt; Sunday
+<b class="fc">&nbsp;        LocalDate monday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));</b>
+<b class="fc">&nbsp;        LocalDate sunday = monday.plusDays(6);</b>
+<b class="fc">&nbsp;        LocalDate prevMonday = monday.minusDays(7);</b>
+&nbsp;        //LocalDate prevSunday = sunday.minusDays(7);
+<b class="fc">&nbsp;        LocalDate nextMonday = monday.plusDays(7);</b>
+&nbsp;        //LocalDate nextSunday = sunday.plusDays(7);
+&nbsp;
+&nbsp;        // 2) Current user &amp; ID
+<b class="fc">&nbsp;        Authentication auth = SecurityContextHolder.getContext().getAuthentication();</b>
+&nbsp;        //String email = auth.getName();
+<b class="fc">&nbsp;        User currentUser = DatabaseManager.getUser();</b>
+&nbsp;
+&nbsp;        // int uid = DatabaseManager.getUserIdByEmail(email);
+&nbsp;        // currentUser = new User(uid, email, DatabaseManager.getUserRole(email));
+<b class="fc">&nbsp;        int userId = currentUser.getUserId();</b>
+&nbsp;
+&nbsp;        // 3) Fetch hours per day (map LocalDate-&gt;Double)
+<b class="fc">&nbsp;        HashMap&lt;LocalDate, HashMap&lt;Integer, HashMap&lt;Integer, Double&gt;&gt;&gt; userWeek = DatabaseManager.getUsersAndAssignmentsHoursByRangeDay(userId, monday, sunday);</b>
+&nbsp;
+&nbsp;        // 4) Totale ore e ore contrattuali
+<b class="fc">&nbsp;        int contractHours = DatabaseManager.getWorkingHoursWeekly(userId);</b>
+<b class="fc">&nbsp;        double weeklyTotal = 0.0;</b>
+&nbsp;
+&nbsp;        // 5) Build ordered lists for Thymeleaf
+<b class="fc">&nbsp;        HashMap&lt;LocalDate, Double&gt; dailyMap = new HashMap&lt;&gt;();</b>
+&nbsp;
+<b class="fc">&nbsp;        for(LocalDate actual_day = monday; actual_day.isBefore(sunday) || actual_day.isEqual(sunday); actual_day = actual_day.plusDays(1)) {</b>
+&nbsp;            // Add the single day map
+<b class="fc">&nbsp;            HashMap&lt;Integer, HashMap&lt;Integer, Double&gt;&gt; userDay = userWeek.get(actual_day);</b>
+&nbsp;
+<b class="fc">&nbsp;            if (userWeek.get(actual_day) == null) {</b>
+&nbsp;                // If no data for this day, initialize to 0.0
+<b class="fc">&nbsp;                dailyMap.put(actual_day, 0.0);</b>
+&nbsp;                continue;
+&nbsp;            }
+&nbsp;
+&nbsp;            // Sum all hours for this day
+<b class="fc">&nbsp;            double totalHours = userDay.values().stream()</b>
+<b class="fc">&nbsp;                .flatMap(hourMap -&gt; hourMap.values().stream())</b>
+<b class="fc">&nbsp;                .mapToDouble(Double::doubleValue)</b>
+<b class="fc">&nbsp;                .sum();</b>
+&nbsp;
+<b class="fc">&nbsp;            dailyMap.put(actual_day, totalHours);</b>
+<b class="fc">&nbsp;            weeklyTotal += totalHours;</b>
+&nbsp;        }
+&nbsp;
+&nbsp;        // 6) Task assegnati per il form
+<b class="fc">&nbsp;        List&lt;String&gt; tasks = DatabaseManager.getTasksByUser(userId, true);</b>
+&nbsp;
+&nbsp;        // 7) Popola il modello
+<b class="fc">&nbsp;        model.addAttribute(&quot;today&quot;, today);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;monday&quot;, monday);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;prevMonday&quot;, prevMonday);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;nextMonday&quot;, nextMonday);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;sunday&quot;, sunday);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;workweek&quot;, dailyMap);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;weeklyTotal&quot;, weeklyTotal);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;contractHours&quot;, contractHours);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;tasks&quot;, tasks);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;content&quot;, &quot;home-tracking&quot;);</b>
+&nbsp;
+<b class="fc">&nbsp;        return &quot;layout&quot;;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * Loads the save report fragment inside the layout.
+&nbsp;     *
+&nbsp;     * @param model the Spring model to inject attributes into the view.
+&nbsp;     * @return the Thymeleaf layout page.
+&nbsp;     */
+&nbsp;    @GetMapping(&quot;/save-report/{date}&quot;)
+&nbsp;    public String showSaveReport(@PathVariable(&quot;date&quot;) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+&nbsp;                                 Model model) {
+<b class="fc">&nbsp;        LocalDate today = date;</b>
+&nbsp;
+&nbsp;        // 1) Determine month range
+<b class="fc">&nbsp;        LocalDate actualFirstDayOfMonth = today.minusDays(today.getDayOfMonth() - 1);</b>
+<b class="fc">&nbsp;        LocalDate prevFirstDayOfMonth = actualFirstDayOfMonth.minusMonths(1);</b>
+<b class="fc">&nbsp;        LocalDate nextFirstDayOfMonth = actualFirstDayOfMonth.plusMonths(1);</b>
+<b class="fc">&nbsp;        LocalDate actualLastDayOfMonth = nextFirstDayOfMonth.minusDays(1);</b>
+&nbsp;
+&nbsp;        //
+<b class="fc">&nbsp;        model.addAttribute(&quot;today&quot;, today);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;actualFirstDayOfMonth&quot;, actualFirstDayOfMonth);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;actualLastDayOfMonth&quot;, actualLastDayOfMonth);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;prevFirstDayOfMonth&quot;, prevFirstDayOfMonth);</b>
+<b class="fc">&nbsp;        model.addAttribute(&quot;nextFirstDayOfMonth&quot;, nextFirstDayOfMonth);</b>
+&nbsp;
+<b class="fc">&nbsp;        model.addAttribute(&quot;content&quot;, &quot;save-report&quot;);</b>
+<b class="fc">&nbsp;        return &quot;layout&quot;;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * Displays the homepage view after successful login.
+&nbsp;     * &lt;p&gt;
+&nbsp;     * This method retrieves the current user&#39;s email from Spring Security,
+&nbsp;     * loads their full user record from the database, and sets the user in
+&nbsp;     * the DatabaseManager for further use.
+&nbsp;     * &lt;/p&gt;
+&nbsp;     *
+&nbsp;     * @param model the Spring Model to pass attributes to the view
+&nbsp;     * @return the Thymeleaf layout template for the homepage
+&nbsp;     */
+&nbsp;    @GetMapping(&quot;/homepage&quot;)
+&nbsp;    public String showHomepage(Model model) {
+&nbsp;        // Fetch Spring Security principal
+<b class="fc">&nbsp;        Authentication auth = SecurityContextHolder.getContext().getAuthentication();</b>
+<b class="fc">&nbsp;        String email = auth.getName();</b>
+&nbsp;
+&nbsp;        // Load from DB
+&nbsp;        //SELECT u.email, u.password, u.id as user_id, r.role_name, r.id as role_id
+<b class="fc">&nbsp;        Map&lt;String, String&gt; row = DatabaseManager.getUserRowByEmail(email);</b>
+<b class="fc">&nbsp;        int roleId = Integer.parseInt(row.get(&quot;role_id&quot;));</b>
+<b class="fc">&nbsp;        int userId = Integer.parseInt(row.get(&quot;user_id&quot;));</b>
+&nbsp;
+&nbsp;        // Create our model.User (user_id not used for role checks)
+<b class="fc">&nbsp;        User currentUser = new User(userId, email, row.get(&quot;role_name&quot;), roleId);</b>
+<b class="fc">&nbsp;        DatabaseManager.setUser(currentUser);</b>
+&nbsp;
+&nbsp;
+<b class="fc">&nbsp;        model.addAttribute(&quot;today&quot;, LocalDate.now());</b>
+&nbsp;
+<b class="fc">&nbsp;        model.addAttribute(&quot;content&quot;, &quot;homepage&quot;);</b>
+<b class="fc">&nbsp;        return &quot;layout&quot;;</b>
+&nbsp;    }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2025-06-15 13:56</div>
+</div>
+</body>
+</html>

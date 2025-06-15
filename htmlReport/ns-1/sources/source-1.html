@@ -1,0 +1,160 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > ServingWebContentApplication</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">it.univr.wbsmanagement</a>
+</div>
+
+<h1>Coverage Summary for Class: ServingWebContentApplication (it.univr.wbsmanagement)</h1>
+
+<table class="coverageStats">
+
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">ServingWebContentApplication</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (2/2)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (3/3)
+  </span>
+</td>
+</tr>
+  <tr>
+    <td class="name">ServingWebContentApplication$$SpringCGLIB$$0</td>
+  </tr>
+<tr>
+  <td class="name"><strong>Total</strong></td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (2/2)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (3/3)
+  </span>
+</td>
+</tr>
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package it.univr.wbsmanagement;
+&nbsp;
+&nbsp;import org.springframework.boot.SpringApplication;
+&nbsp;import org.springframework.boot.autoconfigure.SpringBootApplication;
+&nbsp;
+&nbsp;import it.univr.wbsmanagement.database.DatabaseManager;
+&nbsp;
+&nbsp;/**
+&nbsp; * The ServingWebContentApplication class serves as the entry point for the Time Tracking application.
+&nbsp; *
+&nbsp; * &lt;p&gt;This class is responsible for initializing the database and launching the login screen.
+&nbsp; * It ensures that the database structure is set up and then starts the user interface on the
+&nbsp; * Event Dispatch Thread (EDT) for thread safety.&lt;/p&gt;
+&nbsp; */
+&nbsp;@SpringBootApplication
+<b class="fc">&nbsp;public class ServingWebContentApplication {</b>
+&nbsp;    /**
+&nbsp;     * The main method that starts the application.
+&nbsp;     *
+&nbsp;     * @param args command-line arguments (not used).
+&nbsp;     */
+&nbsp;    public static void main(String[] args) {
+&nbsp;
+&nbsp;        // Initialize the database by creating tables if they do not already exist.
+<b class="fc">&nbsp;        DatabaseManager.setupDatabase();</b>
+&nbsp;
+<b class="fc">&nbsp;        SpringApplication.run(ServingWebContentApplication.class, args);</b>
+&nbsp;
+&nbsp;        /*
+&nbsp;
+&nbsp;        // Initialize the database by creating tables if they do not already exist.
+&nbsp;        DatabaseManager.setupDatabase();
+&nbsp;
+&nbsp;        // Launch the login screen on the Event Dispatch Thread to ensure proper thread safety for GUI operations.
+&nbsp;        javax.swing.SwingUtilities.invokeLater(() -&gt; {
+&nbsp;            // Create an instance of the LoginView which represents the login screen.
+&nbsp;            LoginView loginView = new LoginView();
+&nbsp;
+&nbsp;            // Create an instance of the LoginController and associate it with the LoginView.
+&nbsp;            // The controller will handle user interactions and coordinate the login process.
+&nbsp;            LoginController loginController = new LoginController(loginView);
+&nbsp;        });
+&nbsp;
+&nbsp;        */
+&nbsp;    }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2025-06-15 13:56</div>
+</div>
+</body>
+</html>
